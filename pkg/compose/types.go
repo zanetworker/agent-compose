@@ -106,3 +106,18 @@ type AgentStatus struct {
 	Status  SandboxState
 	Since   int64
 }
+
+type Skill struct {
+	Name          string   `yaml:"name"`
+	Prompt        string   `yaml:"-"`
+	RequiresMCP   []string `yaml:"mcp,omitempty"`
+	RequiresTools []string `yaml:"tools,omitempty"`
+	References    []string `yaml:"-"` // file paths relative to skill dir
+}
+
+type SkillFrontmatter struct {
+	Requires struct {
+		MCP   []string `yaml:"mcp"`
+		Tools []string `yaml:"tools"`
+	} `yaml:"requires"`
+}
