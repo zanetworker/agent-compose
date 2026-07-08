@@ -1,0 +1,60 @@
+package compose
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"sort"
+	"strings"
+)
+
+type DryRunExecutor struct {
+	out io.Writer
+}
+
+func NewDryRunExecutor(out io.Writer) *DryRunExecutor {
+	return &DryRunExecutor{out: out}
+}
+
+func (e *DryRunExecutor) CreateSandbox(_ context.Context, name string, spec *ResolvedSpec) error {
+	args := []string{"openshell", "sandbox", "create", "--name", name, "--image", spec.Image}
+	for _, p := range spec.Providers {
+		args = append(args, "--provider", p)
+	}
+	keys := make([]string, 0, len(spec.Env))
+	for k := range spec.Env {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		args = append(args, "--env", fmt.Sprintf("%s=%s", k, spec.Env[k]))
+	}
+	if spec.Policy != "" {
+		args = append(args, "--policy", spec.Policy)
+	}
+	fmt.Fprintln(e.out, strings.Join(args, " "))
+	return nil
+}
+
+func (e *DryRunExecutor) ExecInSandbox(_ context.Context, name string, cmd []string) error {
+	args := append([]string{"openshell", "sandbox", "exec", name, "--"}, cmd...)
+	fmt.Fprintln(e.out, strings.Join(args, " "))
+	return nil
+}
+
+func (e *DryRunExecutor) DeleteSandbox(_ context.Context, name string) error {
+	fmt.Fprintf(e.out, "openshell sandbox delete %s\n", name)
+	return nil
+}
+
+func (e *DryRunExecutor) SandboxLogs(_ context.Context, name string) (io.ReadCloser, error) {
+	return io.NopCloser(strings.NewReader(fmt.Sprintf("[dry-run] logs for %s\n", name))), nil
+}
+
+func (e *DryRunExecutor) SandboxStatus(_ context.Context, name string) (SandboxState, error) {
+	return SandboxUnknown, nil
+}
+
+func (e *DryRunExecutor) ListSandboxes(_ context.Context, labelSelector string) ([]string, error) {
+	return nil, nil
+}

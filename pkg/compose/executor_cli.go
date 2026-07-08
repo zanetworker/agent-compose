@@ -1,0 +1,105 @@
+package compose
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"os/exec"
+	"sort"
+	"strings"
+)
+
+type CLIExecutor struct {
+	binary string
+}
+
+func NewCLIExecutor(binary string) *CLIExecutor {
+	return &CLIExecutor{binary: binary}
+}
+
+func (e *CLIExecutor) CreateSandbox(ctx context.Context, name string, spec *ResolvedSpec) error {
+	args := []string{"sandbox", "create", "--name", name, "--image", spec.Image}
+	for _, p := range spec.Providers {
+		args = append(args, "--provider", p)
+	}
+	keys := make([]string, 0, len(spec.Env))
+	for k := range spec.Env {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		args = append(args, "--env", fmt.Sprintf("%s=%s", k, spec.Env[k]))
+	}
+	if spec.Policy != "" {
+		args = append(args, "--policy", spec.Policy)
+	}
+	return e.run(ctx, args...)
+}
+
+func (e *CLIExecutor) ExecInSandbox(ctx context.Context, name string, cmd []string) error {
+	args := append([]string{"sandbox", "exec", name, "--"}, cmd...)
+	return e.run(ctx, args...)
+}
+
+func (e *CLIExecutor) DeleteSandbox(ctx context.Context, name string) error {
+	return e.run(ctx, "sandbox", "delete", name)
+}
+
+func (e *CLIExecutor) SandboxLogs(ctx context.Context, name string) (io.ReadCloser, error) {
+	cmd := exec.CommandContext(ctx, e.binary, "sandbox", "logs", name)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("sandbox logs pipe: %w", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("sandbox logs start: %w", err)
+	}
+	return stdout, nil
+}
+
+func (e *CLIExecutor) SandboxStatus(ctx context.Context, name string) (SandboxState, error) {
+	var out bytes.Buffer
+	cmd := exec.CommandContext(ctx, e.binary, "sandbox", "status", name)
+	cmd.Stdout = &out
+	if err := cmd.Run(); err != nil {
+		return SandboxUnknown, nil
+	}
+	status := strings.TrimSpace(out.String())
+	switch {
+	case strings.Contains(status, "running"):
+		return SandboxRunning, nil
+	case strings.Contains(status, "stopped"), strings.Contains(status, "exited"):
+		return SandboxStopped, nil
+	default:
+		return SandboxUnknown, nil
+	}
+}
+
+func (e *CLIExecutor) ListSandboxes(ctx context.Context, labelSelector string) ([]string, error) {
+	args := []string{"sandbox", "list", "--label", labelSelector, "--quiet"}
+	var out bytes.Buffer
+	cmd := exec.CommandContext(ctx, e.binary, args...)
+	cmd.Stdout = &out
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("sandbox list: %w", err)
+	}
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	var names []string
+	for _, l := range lines {
+		if l = strings.TrimSpace(l); l != "" {
+			names = append(names, l)
+		}
+	}
+	return names, nil
+}
+
+func (e *CLIExecutor) run(ctx context.Context, args ...string) error {
+	cmd := exec.CommandContext(ctx, e.binary, args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("%s %s: %w\nstderr: %s", e.binary, strings.Join(args, " "), err, stderr.String())
+	}
+	return nil
+}
