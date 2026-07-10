@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -24,7 +26,6 @@ func testEngine(t *testing.T) (*Engine, *bytes.Buffer) {
 		WithConfig(cfg),
 		WithExecutor(NewDryRunExecutor(&buf)),
 		WithSkillsDir(t.TempDir()),
-		WithStore(NewMemoryStore()),
 	)
 	return engine, &buf
 }
@@ -111,10 +112,13 @@ func TestEngine_Run_InlineAgent(t *testing.T) {
 func TestEngine_Stop(t *testing.T) {
 	engine, buf := testEngine(t)
 
-	engine.Run(context.Background(), "reviewer", RunOpts{})
+	run, err := engine.Run(context.Background(), "reviewer", RunOpts{})
+	if err != nil {
+		t.Fatalf("Run failed: %v", err)
+	}
 	buf.Reset()
 
-	err := engine.Stop(context.Background(), "reviewer")
+	err = engine.Stop(context.Background(), run.Sandbox)
 	if err != nil {
 		t.Fatalf("Stop failed: %v", err)
 	}
@@ -126,7 +130,21 @@ func TestEngine_Stop(t *testing.T) {
 }
 
 func TestEngine_List(t *testing.T) {
-	engine, _ := testEngine(t)
+	cfg := testConfig()
+	cfg.Agents["reviewer"] = Agent{
+		Name:    "reviewer",
+		Runtime: "claude-code",
+		Prompt:  "Review code.",
+		MCP:     []string{"github"},
+	}
+
+	exec := &mockExecutorWithList{}
+	engine := New(
+		WithConfig(cfg),
+		WithExecutor(exec),
+		WithSkillsDir(t.TempDir()),
+	)
+
 	engine.Run(context.Background(), "reviewer", RunOpts{})
 
 	agents, err := engine.List(context.Background())
@@ -136,16 +154,16 @@ func TestEngine_List(t *testing.T) {
 	if len(agents) != 1 {
 		t.Errorf("len = %d, want 1", len(agents))
 	}
-	if agents[0].Name != "reviewer" {
-		t.Errorf("name = %q, want reviewer", agents[0].Name)
-	}
 }
 
 func TestEngine_Logs(t *testing.T) {
 	engine, _ := testEngine(t)
-	engine.Run(context.Background(), "reviewer", RunOpts{})
+	run, err := engine.Run(context.Background(), "reviewer", RunOpts{})
+	if err != nil {
+		t.Fatalf("Run failed: %v", err)
+	}
 
-	logs, err := engine.Logs(context.Background(), "reviewer")
+	logs, err := engine.Logs(context.Background(), run.Sandbox)
 	if err != nil {
 		t.Fatalf("Logs failed: %v", err)
 	}
@@ -196,5 +214,84 @@ agents:
 	}
 	if len(errs) != 0 {
 		t.Errorf("expected no errors, got %v", errs)
+	}
+}
+
+// mockExecutorWithList implements Executor with a fake ListSandboxes method
+type mockExecutorWithList struct {
+	sandboxes []string
+	buf       *bytes.Buffer
+}
+
+func (m *mockExecutorWithList) CreateSandbox(_ context.Context, name string, spec *ResolvedSpec) error {
+	m.sandboxes = append(m.sandboxes, name)
+	if m.buf != nil {
+		fmt.Fprintf(m.buf, "created sandbox %s\n", name)
+	}
+	return nil
+}
+
+func (m *mockExecutorWithList) ExecInSandbox(_ context.Context, name string, cmd []string) error {
+	if m.buf != nil {
+		fmt.Fprintf(m.buf, "exec in %s: %v\n", name, cmd)
+	}
+	return nil
+}
+
+func (m *mockExecutorWithList) DeleteSandbox(_ context.Context, name string) error {
+	for i, s := range m.sandboxes {
+		if s == name {
+			m.sandboxes = append(m.sandboxes[:i], m.sandboxes[i+1:]...)
+			break
+		}
+	}
+	if m.buf != nil {
+		fmt.Fprintf(m.buf, "deleted sandbox %s\n", name)
+	}
+	return nil
+}
+
+func (m *mockExecutorWithList) SandboxLogs(_ context.Context, name string) (io.ReadCloser, error) {
+	return io.NopCloser(strings.NewReader(fmt.Sprintf("[mock] logs for %s\n", name))), nil
+}
+
+func (m *mockExecutorWithList) SandboxStatus(_ context.Context, name string) (SandboxState, error) {
+	for _, s := range m.sandboxes {
+		if s == name {
+			return SandboxRunning, nil
+		}
+	}
+	return SandboxUnknown, nil
+}
+
+func (m *mockExecutorWithList) ListSandboxes(_ context.Context, labelSelector string) ([]string, error) {
+	return m.sandboxes, nil
+}
+
+func TestEngine_List_FromExecutor(t *testing.T) {
+	cfg := testConfig()
+	cfg.Agents["reviewer"] = Agent{Name: "reviewer", Runtime: "claude-code", Prompt: "test"}
+
+	var buf bytes.Buffer
+	exec := &mockExecutorWithList{buf: &buf}
+
+	engine := New(WithConfig(cfg), WithExecutor(exec), WithSkillsDir(t.TempDir()))
+
+	// Run an agent to create a sandbox
+	run, err := engine.Run(context.Background(), "reviewer", RunOpts{})
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+
+	// List should query the executor, not the store
+	statuses, err := engine.List(context.Background())
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(statuses) != 1 {
+		t.Fatalf("expected 1 status, got %d", len(statuses))
+	}
+	if statuses[0].Sandbox != run.Sandbox {
+		t.Errorf("expected sandbox %q, got %q", run.Sandbox, statuses[0].Sandbox)
 	}
 }

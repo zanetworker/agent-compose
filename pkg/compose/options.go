@@ -20,12 +20,6 @@ func WithSkillsDir(dir string) Option {
 	}
 }
 
-func WithStore(store RunStore) Option {
-	return func(e *Engine) {
-		e.store = store
-	}
-}
-
 func WithRuntimeResolver(r RuntimeResolver) Option {
 	return func(e *Engine) {
 		e.runtimeOverride = r

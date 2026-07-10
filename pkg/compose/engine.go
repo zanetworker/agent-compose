@@ -17,7 +17,6 @@ type Engine struct {
 	config            *Config
 	resolver          *Resolver
 	executor          Executor
-	store             RunStore
 	skillsDir         string
 	runtimeOverride   RuntimeResolver
 	inferenceOverride InferenceResolver
@@ -31,9 +30,6 @@ func New(opts ...Option) *Engine {
 	}
 	if e.config == nil {
 		e.config = DefaultConfig()
-	}
-	if e.store == nil {
-		e.store = NewMemoryStore()
 	}
 
 	runtimes := RuntimeResolver(NewConfigRuntimeResolver(e.config))
@@ -101,6 +97,12 @@ func (e *Engine) Run(ctx context.Context, name string, opts RunOpts) (*Run, erro
 
 	sandboxName := fmt.Sprintf("%s-%d", name, time.Now().Unix())
 
+	// Ensure labels map exists and add agent label for tracking
+	if spec.Labels == nil {
+		spec.Labels = make(map[string]string)
+	}
+	spec.Labels["agentctl.io/agent"] = name
+
 	if err := e.executor.CreateSandbox(ctx, sandboxName, spec); err != nil {
 		return nil, fmt.Errorf("creating sandbox: %w", err)
 	}
@@ -117,46 +119,36 @@ func (e *Engine) Run(ctx context.Context, name string, opts RunOpts) (*Run, erro
 		StartedAt: time.Now().Unix(),
 		Status:    SandboxRunning,
 	}
-	e.store.Save(ctx, run)
 
 	return run, nil
 }
 
 func (e *Engine) Stop(ctx context.Context, name string) error {
-	run, err := e.store.Get(ctx, name)
-	if err != nil {
-		return fmt.Errorf("no running agent %q found", name)
-	}
-	if err := e.executor.DeleteSandbox(ctx, run.Sandbox); err != nil {
+	if err := e.executor.DeleteSandbox(ctx, name); err != nil {
 		return fmt.Errorf("deleting sandbox: %w", err)
 	}
-	e.store.Delete(ctx, name)
 	return nil
 }
 
 func (e *Engine) List(ctx context.Context) ([]AgentStatus, error) {
-	runs, err := e.store.List(ctx)
+	sandboxes, err := e.executor.ListSandboxes(ctx, "agentctl.io/agent")
 	if err != nil {
 		return nil, err
 	}
-	statuses := make([]AgentStatus, len(runs))
-	for i, r := range runs {
+	statuses := make([]AgentStatus, len(sandboxes))
+	for i, s := range sandboxes {
+		status, _ := e.executor.SandboxStatus(ctx, s)
 		statuses[i] = AgentStatus{
-			Name:    r.Agent,
-			Sandbox: r.Sandbox,
-			Status:  r.Status,
-			Since:   r.StartedAt,
+			Name:    s,
+			Sandbox: s,
+			Status:  status,
 		}
 	}
 	return statuses, nil
 }
 
 func (e *Engine) Logs(ctx context.Context, name string) (io.ReadCloser, error) {
-	run, err := e.store.Get(ctx, name)
-	if err != nil {
-		return nil, fmt.Errorf("no running agent %q found", name)
-	}
-	return e.executor.SandboxLogs(ctx, run.Sandbox)
+	return e.executor.SandboxLogs(ctx, name)
 }
 
 func (e *Engine) Inspect(ctx context.Context, name string) (*ResolvedSpec, error) {
