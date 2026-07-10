@@ -10,6 +10,8 @@ Running an agent in an OpenShell sandbox requires 8+ manual steps: choosing the 
 
 A composition engine that connects catalogs (what's available) to sandboxes (where agents run). You declare what the agent needs; the engine resolves it into raw `openshell` commands.
 
+![Architecture](docs/architecture.png)
+
 ```
 Catalogs (config.yaml)     Agent Config (what I want)     Engine (resolve)     OpenShell (run)
 models, MCP, skills        runtime + inference + mcp      ResolvedSpec         sandbox create
@@ -101,6 +103,12 @@ One field, `runtime:`, discriminates three kinds:
 | **harness** | `runtime: claude-code` | Claude Code, Codex, Goose |
 | **framework** | `image:` + `env-mapping:` | ADK, LangGraph, CrewAI |
 | **raw** | `image:` + `entrypoint:` | Any container |
+
+## Resolution Pipeline
+
+The engine resolves agent configs in 12 steps, producing a `ResolvedSpec` that contains everything OpenShell needs.
+
+![Resolution Pipeline](docs/resolution-pipeline.png)
 
 ## N-var Env-Mapping
 
@@ -236,6 +244,75 @@ Global flags: `--json`, `--dry-run`, `--config <path>`, `--skills-dir <path>`
 | adk | framework | python:3.12-slim | GOOGLE_GENAI_BASE_URL, GOOGLE_API_KEY, GOOGLE_GENAI_MODEL |
 
 Add custom profiles under `runtimes:` in config.yaml.
+
+## Personas and When GitOps Makes Sense
+
+Three personas use agent-compose differently. The config surface is designed so each can work independently without blocking the others.
+
+### The Developer (runs agents on a laptop)
+
+Uses CLI flags or named agents from config.yaml. Cares about getting a working agent fast, not about infrastructure. Typical workflow:
+
+```bash
+ac init                                    # one-time setup
+ac run --runtime claude-code --prompt "Review this PR" --workspace . --dry-run
+ac run code-reviewer --workspace ./repo    # once config has a named agent
+```
+
+**Config tier:** zero files (CLI flags) or one file (config.yaml with an agents section). No GitOps needed. The developer edits `~/.agentctl/config.yaml` locally and iterates. This persona never touches infrastructure config; they consume what the platform team provides.
+
+### The Platform Engineer (manages infrastructure config)
+
+Owns `config.yaml`: runtimes, inference providers, MCP servers, policies, and defaults. Their job is to ensure the right credentials, egress rules, and security policies are in place so developers can `ac run` without thinking about plumbing.
+
+**Config tier:** one file (config.yaml), version-controlled in a shared repo. Changes go through PR review. Developers pull the latest config.
+
+**When GitOps matters here:** when the platform team manages multiple clusters or environments (dev/staging/prod), each with different inference endpoints, providers, or policies. A GitOps repo with per-environment overlays lets ArgoCD or Flux reconcile `config.yaml` changes:
+
+```
+infra-agents/
++-- base/
+|   +-- config.yaml         # shared runtimes, skills
++-- overlays/
+    +-- dev/
+    |   +-- config.yaml      # dev inference endpoints, relaxed policy
+    +-- prod/
+        +-- config.yaml      # prod endpoints, strict policy, pinned digests
+```
+
+### The Team Lead (manages agent definitions for a team)
+
+Defines named agents as separate YAML files in a team repo. Each agent is a composition of runtime + inference + MCP + skills + prompt, reviewed and versioned like code. Developers on the team `ac run <agent-name>` without knowing the internals.
+
+**Config tier:** separate files (GitOps). This is where GitOps becomes essential:
+
+```
+team-agents/
++-- config.yaml              # team's inference/MCP/policy config
++-- agents/
+|   +-- code-reviewer.yaml   # reviews PRs for security issues
+|   +-- test-runner.yaml     # runs test suites in sandboxed codex
+|   +-- doc-writer.yaml      # generates docs from code
++-- skills/
+    +-- security-review/
+        +-- SKILL.md
+```
+
+**Why GitOps here:**
+- Agent definitions are reviewed in PRs (prompt changes, skill additions, policy overrides are all visible in diff)
+- `ac apply -f agents/` (v2) reconciles the declared agents with what's running, like `kubectl apply`
+- ArgoCD watches the repo and auto-deploys agent config changes to the cluster
+- Rollback is `git revert`; the engine re-resolves on next run
+
+**When GitOps does NOT make sense:** a single developer on a laptop experimenting with agents. The zero-file and one-file tiers exist precisely so you don't need a Git repo to get started. GitOps is for teams managing shared agent definitions across environments, not for individual experimentation.
+
+### Summary
+
+| Persona | Config tier | GitOps? | What they own |
+|---|---|---|---|
+| Developer | CLI flags or `~/.agentctl/config.yaml` | No | Their agents, their prompts |
+| Platform Engineer | Shared `config.yaml` in a repo | Yes, for multi-env | Runtimes, inference, MCP, policies |
+| Team Lead | Separate agent files in a team repo | Yes, always | Agent definitions, skills, team standards |
 
 ## Development
 

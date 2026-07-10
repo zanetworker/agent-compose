@@ -1,0 +1,204 @@
+<mxfile>
+  <diagram name="Resolution Pipeline" id="pipeline">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1100" pageHeight="850" background="none">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Background -->
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;opacity=100;" vertex="1" parent="1">
+          <mxGeometry x="-50" y="-50" width="1200" height="920" as="geometry"/>
+        </mxCell>
+
+        <!-- Title -->
+        <mxCell id="title" value="Resolution Pipeline" style="text;html=1;fontSize=24;fontStyle=1;fontColor=#151515;fontFamily=Red Hat Display;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="0" width="400" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Agent config to openshell commands in 12 steps" style="text;html=1;fontSize=13;fontStyle=2;fontColor=#6A6A6A;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="35" width="400" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- INPUT: Agent Config -->
+        <mxCell id="input_box" value="&lt;b&gt;Agent Config&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A;font-family:Red Hat Mono&quot;&gt;runtime: claude-code&lt;br&gt;inference: maas&lt;br&gt;mcp: [github]&lt;br&gt;prompt: &quot;Review this code&quot;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF5F5;strokeColor=#EE0000;strokeWidth=2;fontColor=#151515;fontFamily=Red Hat Text;fontSize=12;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="20" y="80" width="220" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Steps 1-12 -->
+        <mxCell id="s1" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;1&lt;/font&gt;  &lt;b&gt;Load agent config&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;config.yaml agents section, file, or CLI flags&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#D0D0D0;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="80" width="320" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s2" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;2&lt;/font&gt;  &lt;b&gt;Apply defaults + overrides&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;inference, model, policy, sandbox scope/mode/ttl&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#D0D0D0;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="132" width="320" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;3&lt;/font&gt;  &lt;b&gt;Resolve runtime&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;image, entrypoint, env-mapping template, default tools&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF5F5;strokeColor=#EE0000;strokeWidth=2;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="184" width="320" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s4" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;4&lt;/font&gt;  &lt;b&gt;Resolve inference + expand N-var&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;${endpoint}/${key}/${model}/${model.opus} to env vars&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF5F5;strokeColor=#EE0000;strokeWidth=2;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="236" width="320" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s5" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;5&lt;/font&gt;  &lt;b&gt;Resolve each MCP&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;egress rules, provider name&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#D0D0D0;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="288" width="320" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s6" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;6&lt;/font&gt;  &lt;b&gt;Resolve each skill&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;prompt text, required MCP, required tools, mounts&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#D0D0D0;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="340" width="320" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s7" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;7&lt;/font&gt;  &lt;b&gt;Assemble prompt&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;agent prompt + skill prompts&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#D0D0D0;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="392" width="320" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s8" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;8&lt;/font&gt;  &lt;b&gt;Merge egress&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;deduplicated from inference + all MCP&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#D0D0D0;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="444" width="320" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s9" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;9&lt;/font&gt;  &lt;b&gt;Merge tools&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;runtime defaults + skill reqs + agent overrides&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#D0D0D0;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="496" width="320" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s10" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;10&lt;/font&gt; &lt;b&gt;Collect providers&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;deduplicated from inference + all MCP&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#D0D0D0;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="548" width="320" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s11" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;11&lt;/font&gt; &lt;b&gt;Resolve sandbox&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;scope/mode/ttl from agent, defaults, per-run override&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#D0D0D0;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="600" width="320" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s12" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;12&lt;/font&gt; &lt;b&gt;Return ResolvedSpec&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF5F5;strokeColor=#EE0000;strokeWidth=2;fontColor=#151515;fontFamily=Red Hat Text;fontSize=11;arcSize=8;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="652" width="320" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrows between steps -->
+        <mxCell id="a_in_s1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6A6A6A;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="input_box" target="s1" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D0D0D0;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s1" target="s2" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D0D0D0;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s2" target="s3" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a34" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D0D0D0;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s3" target="s4" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a45" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D0D0D0;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s4" target="s5" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a56" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D0D0D0;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s5" target="s6" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a67" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D0D0D0;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s6" target="s7" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a78" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D0D0D0;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s7" target="s8" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a89" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D0D0D0;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s8" target="s9" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a910" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D0D0D0;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s9" target="s10" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a1011" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D0D0D0;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s10" target="s11" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a1112" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D0D0D0;strokeWidth=1;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s11" target="s12" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- OUTPUT: ResolvedSpec (right panel) -->
+        <mxCell id="output_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF5F5;strokeColor=#EE0000;strokeWidth=2;arcSize=5;" vertex="1" parent="1">
+          <mxGeometry x="660" y="80" width="470" height="607" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="output_title" value="ResolvedSpec" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#151515;fontFamily=Red Hat Display;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="90" width="200" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="output_sub" value="Everything OpenShell needs" style="text;html=1;fontSize=11;fontStyle=2;fontColor=#6A6A6A;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="115" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ResolvedSpec fields -->
+        <mxCell id="f_identity" value="&lt;font style=&quot;color:#EE0000;font-weight:bold;font-size:10px&quot;&gt;IDENTITY&lt;/font&gt;" style="text;html=1;fontSize=10;fontFamily=Red Hat Text;align=left;letterSpacing=1;" vertex="1" parent="1">
+          <mxGeometry x="675" y="145" width="100" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f1" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Name&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;code-reviewer&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="163" width="300" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f1b" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Labels&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;agentctl.io/agent=code-reviewer&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="181" width="400" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f1c" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;RuntimeKind&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;harness&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="199" width="300" height="18" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="f_container" value="&lt;font style=&quot;color:#EE0000;font-weight:bold;font-size:10px&quot;&gt;CONTAINER&lt;/font&gt;" style="text;html=1;fontSize=10;fontFamily=Red Hat Text;align=left;letterSpacing=1;" vertex="1" parent="1">
+          <mxGeometry x="675" y="225" width="100" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f2" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Image&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;ghcr.io/anthropics/claude-code@sha256:...&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="243" width="440" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f3" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Entrypoint&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;[claude, --prompt-file, /workspace/prompt.md]&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="261" width="440" height="18" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="f_env" value="&lt;font style=&quot;color:#EE0000;font-weight:bold;font-size:10px&quot;&gt;ENVIRONMENT (N-var expanded)&lt;/font&gt;" style="text;html=1;fontSize=10;fontFamily=Red Hat Text;align=left;letterSpacing=1;" vertex="1" parent="1">
+          <mxGeometry x="675" y="290" width="250" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f4" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:10px;color:#4D4D4D&quot;&gt;ANTHROPIC_BASE_URL=https://maas.apps.cluster.com/v1&lt;br&gt;ANTHROPIC_DEFAULT_SONNET_MODEL=granite-3.3-8b&lt;br&gt;ANTHROPIC_DEFAULT_OPUS_MODEL=granite-3.3-8b&lt;br&gt;ANTHROPIC_DEFAULT_HAIKU_MODEL=granite-3.3-2b&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Mono;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="308" width="440" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="f_network" value="&lt;font style=&quot;color:#EE0000;font-weight:bold;font-size:10px&quot;&gt;NETWORK + CREDENTIALS&lt;/font&gt;" style="text;html=1;fontSize=10;fontFamily=Red Hat Text;align=left;letterSpacing=1;" vertex="1" parent="1">
+          <mxGeometry x="675" y="378" width="200" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f5" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Providers&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;[maas-anthropic, github-pat]&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="396" width="400" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f6" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Egress&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;[maas.apps.cluster.com:443, api.github.com:443]&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="414" width="440" height="18" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="f_security" value="&lt;font style=&quot;color:#EE0000;font-weight:bold;font-size:10px&quot;&gt;SECURITY&lt;/font&gt;" style="text;html=1;fontSize=10;fontFamily=Red Hat Text;align=left;letterSpacing=1;" vertex="1" parent="1">
+          <mxGeometry x="675" y="442" width="100" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f7" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Policy&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;restricted&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="460" width="300" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f8" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Tools&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;[shell, file-read, file-write, bundle-mcp]&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="478" width="400" height="18" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="f_sandbox" value="&lt;font style=&quot;color:#EE0000;font-weight:bold;font-size:10px&quot;&gt;SANDBOX LIFECYCLE&lt;/font&gt;" style="text;html=1;fontSize=10;fontFamily=Red Hat Text;align=left;letterSpacing=1;" vertex="1" parent="1">
+          <mxGeometry x="675" y="506" width="150" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f9" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Scope&lt;/font&gt; session  &lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Mode&lt;/font&gt; all  &lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;TTL&lt;/font&gt; 30m" style="text;html=1;fontFamily=Red Hat Text;fontSize=10;fontColor=#6A6A6A;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="524" width="400" height="18" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="f_content" value="&lt;font style=&quot;color:#EE0000;font-weight:bold;font-size:10px&quot;&gt;AGENT CONTENT&lt;/font&gt;" style="text;html=1;fontSize=10;fontFamily=Red Hat Text;align=left;letterSpacing=1;" vertex="1" parent="1">
+          <mxGeometry x="675" y="552" width="150" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f10" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Prompt&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;&quot;Review code for security issues.&quot; + skill prompts&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="570" width="440" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f11" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;SkillMounts&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;/workspace/skills/security-review/&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="588" width="440" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="f12" value="&lt;font style=&quot;font-family:Red Hat Mono;font-size:11px;color:#A60000&quot;&gt;Workspace&lt;/font&gt;  &lt;font style=&quot;font-size:10px;color:#6A6A6A&quot;&gt;./my-project&lt;/font&gt;" style="text;html=1;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="675" y="606" width="300" height="18" as="geometry"/>
+        </mxCell>
+
+        <!-- OPENSHELL OUTPUT at bottom -->
+        <mxCell id="os_output" value="&lt;b&gt;openshell sandbox create&lt;/b&gt;&lt;font style=&quot;font-size:10px;color:#6A6A6A;font-family:Red Hat Mono&quot;&gt; --name code-reviewer --image ... --provider maas-anthropic --env ANTHROPIC_BASE_URL=... --scope session --ttl 30m --label agentctl.io/agent=code-reviewer&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#151515;strokeWidth=1;fontColor=#151515;fontFamily=Red Hat Mono;fontSize=11;arcSize=5;" vertex="1" parent="1">
+          <mxGeometry x="290" y="720" width="840" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="spec_to_os" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6A6A6A;strokeWidth=1.5;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s12" target="os_output" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="exec_label2" value="&lt;font color=&quot;#4D4D4D&quot;&gt;Executor&lt;/font&gt;" style="text;html=1;fontSize=11;fontFamily=Red Hat Text;align=center;" vertex="1" parent="1">
+          <mxGeometry x="410" y="695" width="60" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- 8 steps annotation -->
+        <mxCell id="eight_steps" value="&lt;font style=&quot;color:#EE0000;font-weight:bold&quot;&gt;8 manual steps&lt;/font&gt;&lt;font style=&quot;color:#4D4D4D&quot;&gt; collapsed&lt;br&gt;into one declaration&lt;/font&gt;" style="text;html=1;fontSize=12;fontFamily=Red Hat Text;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="195" width="180" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="leg1" value="&lt;font color=&quot;#EE0000&quot;&gt;&#x2501;&lt;/font&gt; &lt;font color=&quot;#4D4D4D&quot;&gt;critical path (env-mapping, output)&lt;/font&gt;" style="text;html=1;fontSize=10;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="790" width="280" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="&lt;font color=&quot;#A60000;font-family:Red Hat Mono&quot;&gt;FieldName&lt;/font&gt; &lt;font color=&quot;#4D4D4D&quot;&gt;= ResolvedSpec field&lt;/font&gt;" style="text;html=1;fontSize=10;fontFamily=Red Hat Text;align=left;" vertex="1" parent="1">
+          <mxGeometry x="320" y="790" width="250" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
