@@ -32,6 +32,24 @@ func (e *DryRunExecutor) CreateSandbox(_ context.Context, name string, spec *Res
 	if spec.Policy != "" {
 		args = append(args, "--policy", spec.Policy)
 	}
+	if spec.Sandbox.Scope != "" {
+		args = append(args, "--scope", spec.Sandbox.Scope)
+	}
+	if spec.Sandbox.Mode != "" {
+		args = append(args, "--mode", spec.Sandbox.Mode)
+	}
+	if spec.Sandbox.TTL != "" {
+		args = append(args, "--ttl", spec.Sandbox.TTL)
+	}
+	// Labels sorted for determinism
+	labelKeys := make([]string, 0, len(spec.Labels))
+	for k := range spec.Labels {
+		labelKeys = append(labelKeys, k)
+	}
+	sort.Strings(labelKeys)
+	for _, k := range labelKeys {
+		args = append(args, "--label", fmt.Sprintf("%s=%s", k, spec.Labels[k]))
+	}
 	fmt.Fprintln(e.out, strings.Join(args, " "))
 	return nil
 }

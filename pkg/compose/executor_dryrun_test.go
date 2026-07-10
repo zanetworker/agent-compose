@@ -55,3 +55,29 @@ func TestDryRunExecutor_ExecInSandbox(t *testing.T) {
 		t.Errorf("output missing sandbox name: %s", output)
 	}
 }
+
+func TestDryRunExecutor_CreateSandbox_WithSandboxOpts(t *testing.T) {
+	var buf bytes.Buffer
+	exec := NewDryRunExecutor(&buf)
+	spec := &ResolvedSpec{
+		Image:   "test:latest",
+		Sandbox: SandboxOpts{Scope: "session", Mode: "all", TTL: "30m"},
+		Labels:  map[string]string{"agentctl.io/agent": "reviewer"},
+		Env:     map[string]string{},
+	}
+	exec.CreateSandbox(nil, "test-sandbox", spec)
+	output := buf.String()
+
+	if !strings.Contains(output, "--scope session") {
+		t.Errorf("expected --scope session in output: %s", output)
+	}
+	if !strings.Contains(output, "--ttl 30m") {
+		t.Errorf("expected --ttl 30m in output: %s", output)
+	}
+	if !strings.Contains(output, "--mode all") {
+		t.Errorf("expected --mode all in output: %s", output)
+	}
+	if !strings.Contains(output, "--label agentctl.io/agent=reviewer") {
+		t.Errorf("expected --label in output: %s", output)
+	}
+}
