@@ -26,9 +26,9 @@ func WithStore(store RunStore) Option {
 	}
 }
 
-func WithHarnessResolver(r HarnessResolver) Option {
+func WithRuntimeResolver(r RuntimeResolver) Option {
 	return func(e *Engine) {
-		e.harnessOverride = r
+		e.runtimeOverride = r
 	}
 }
 

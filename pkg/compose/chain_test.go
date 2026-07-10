@@ -6,11 +6,11 @@ import (
 	"testing"
 )
 
-func TestChainedHarnessResolver_FallsThrough(t *testing.T) {
-	empty := NewConfigHarnessResolver(&Config{Runtimes: map[string]RuntimeProfile{}})
-	withData := NewConfigHarnessResolver(DefaultConfig())
+func TestChainedRuntimeResolver_FallsThrough(t *testing.T) {
+	empty := NewConfigRuntimeResolver(&Config{Runtimes: map[string]RuntimeProfile{}})
+	withData := NewConfigRuntimeResolver(DefaultConfig())
 
-	chain := NewChainedHarnessResolver(empty, withData)
+	chain := NewChainedRuntimeResolver(empty, withData)
 
 	profile, err := chain.Resolve(context.Background(), "claude-code")
 	if err != nil {
@@ -21,15 +21,15 @@ func TestChainedHarnessResolver_FallsThrough(t *testing.T) {
 	}
 }
 
-func TestChainedHarnessResolver_FirstWins(t *testing.T) {
-	override := NewConfigHarnessResolver(&Config{
+func TestChainedRuntimeResolver_FirstWins(t *testing.T) {
+	override := NewConfigRuntimeResolver(&Config{
 		Runtimes: map[string]RuntimeProfile{
 			"claude-code": {Kind: "harness", Image: "custom-image:v1"},
 		},
 	})
-	defaults := NewConfigHarnessResolver(DefaultConfig())
+	defaults := NewConfigRuntimeResolver(DefaultConfig())
 
-	chain := NewChainedHarnessResolver(override, defaults)
+	chain := NewChainedRuntimeResolver(override, defaults)
 
 	profile, err := chain.Resolve(context.Background(), "claude-code")
 	if err != nil {
@@ -40,11 +40,11 @@ func TestChainedHarnessResolver_FirstWins(t *testing.T) {
 	}
 }
 
-func TestChainedHarnessResolver_AllMiss(t *testing.T) {
-	empty1 := NewConfigHarnessResolver(&Config{Runtimes: map[string]RuntimeProfile{}})
-	empty2 := NewConfigHarnessResolver(&Config{Runtimes: map[string]RuntimeProfile{}})
+func TestChainedRuntimeResolver_AllMiss(t *testing.T) {
+	empty1 := NewConfigRuntimeResolver(&Config{Runtimes: map[string]RuntimeProfile{}})
+	empty2 := NewConfigRuntimeResolver(&Config{Runtimes: map[string]RuntimeProfile{}})
 
-	chain := NewChainedHarnessResolver(empty1, empty2)
+	chain := NewChainedRuntimeResolver(empty1, empty2)
 
 	_, err := chain.Resolve(context.Background(), "nonexistent")
 	if !errors.Is(err, ErrNotFound) {

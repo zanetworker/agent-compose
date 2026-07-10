@@ -6,15 +6,15 @@ import (
 	"fmt"
 )
 
-type ChainedHarnessResolver struct {
-	resolvers []HarnessResolver
+type ChainedRuntimeResolver struct {
+	resolvers []RuntimeResolver
 }
 
-func NewChainedHarnessResolver(resolvers ...HarnessResolver) *ChainedHarnessResolver {
-	return &ChainedHarnessResolver{resolvers: resolvers}
+func NewChainedRuntimeResolver(resolvers ...RuntimeResolver) *ChainedRuntimeResolver {
+	return &ChainedRuntimeResolver{resolvers: resolvers}
 }
 
-func (c *ChainedHarnessResolver) Resolve(ctx context.Context, name string) (*RuntimeProfile, error) {
+func (c *ChainedRuntimeResolver) Resolve(ctx context.Context, name string) (*RuntimeProfile, error) {
 	for _, r := range c.resolvers {
 		result, err := r.Resolve(ctx, name)
 		if err == nil {
@@ -24,10 +24,10 @@ func (c *ChainedHarnessResolver) Resolve(ctx context.Context, name string) (*Run
 			return nil, err
 		}
 	}
-	return nil, fmt.Errorf("harness %q: %w in any resolver", name, ErrNotFound)
+	return nil, fmt.Errorf("runtime %q: %w in any resolver", name, ErrNotFound)
 }
 
-func (c *ChainedHarnessResolver) List(ctx context.Context) ([]RuntimeProfile, error) {
+func (c *ChainedRuntimeResolver) List(ctx context.Context) ([]RuntimeProfile, error) {
 	seen := make(map[string]bool)
 	var all []RuntimeProfile
 	for _, r := range c.resolvers {

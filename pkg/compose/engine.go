@@ -19,7 +19,7 @@ type Engine struct {
 	executor          Executor
 	store             RunStore
 	skillsDir         string
-	harnessOverride   HarnessResolver
+	runtimeOverride   RuntimeResolver
 	inferenceOverride InferenceResolver
 	mcpOverride       MCPResolver
 }
@@ -36,9 +36,9 @@ func New(opts ...Option) *Engine {
 		e.store = NewMemoryStore()
 	}
 
-	harnesses := HarnessResolver(NewConfigHarnessResolver(e.config))
-	if e.harnessOverride != nil {
-		harnesses = NewChainedHarnessResolver(e.harnessOverride, harnesses)
+	runtimes := RuntimeResolver(NewConfigRuntimeResolver(e.config))
+	if e.runtimeOverride != nil {
+		runtimes = NewChainedRuntimeResolver(e.runtimeOverride, runtimes)
 	}
 	inference := InferenceResolver(NewConfigInferenceResolver(e.config))
 	if e.inferenceOverride != nil {
@@ -51,7 +51,7 @@ func New(opts ...Option) *Engine {
 	skills := SkillResolver(NewLocalSkillResolver(e.skillsDir))
 	policy := PolicyResolver(NewConfigPolicyResolver())
 
-	e.resolver = NewResolver(harnesses, inference, mcp, skills, policy, e.config.Defaults)
+	e.resolver = NewResolver(runtimes, inference, mcp, skills, policy, e.config.Defaults)
 	return e
 }
 

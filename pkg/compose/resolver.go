@@ -7,7 +7,7 @@ import (
 )
 
 type Resolver struct {
-	harnesses HarnessResolver
+	runtimes  RuntimeResolver
 	inference InferenceResolver
 	mcp       MCPResolver
 	skills    SkillResolver
@@ -16,7 +16,7 @@ type Resolver struct {
 }
 
 func NewResolver(
-	harnesses HarnessResolver,
+	runtimes RuntimeResolver,
 	inference InferenceResolver,
 	mcp MCPResolver,
 	skills SkillResolver,
@@ -24,7 +24,7 @@ func NewResolver(
 	defaults Defaults,
 ) *Resolver {
 	return &Resolver{
-		harnesses: harnesses,
+		runtimes:  runtimes,
 		inference: inference,
 		mcp:       mcp,
 		skills:    skills,
@@ -51,7 +51,7 @@ func (r *Resolver) Resolve(ctx context.Context, agent Agent) (*ResolvedSpec, err
 	// Resolve runtime or use direct image
 	var envMapping map[string]string
 	if agent.Runtime != "" {
-		profile, err := r.harnesses.Resolve(ctx, agent.Runtime)
+		profile, err := r.runtimes.Resolve(ctx, agent.Runtime)
 		if err != nil {
 			return nil, fmt.Errorf("resolving runtime: %w", err)
 		}

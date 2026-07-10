@@ -26,7 +26,7 @@ func testConfig() *Config {
 func TestResolver_HarnessAgent(t *testing.T) {
 	cfg := testConfig()
 	r := NewResolver(
-		NewConfigHarnessResolver(cfg),
+		NewConfigRuntimeResolver(cfg),
 		NewConfigInferenceResolver(cfg),
 		NewConfigMCPResolver(cfg),
 		NewLocalSkillResolver(t.TempDir()),
@@ -86,7 +86,7 @@ func TestResolver_HarnessAgent(t *testing.T) {
 func TestResolver_FrameworkAgent_CustomEnvMapping(t *testing.T) {
 	cfg := testConfig()
 	r := NewResolver(
-		NewConfigHarnessResolver(cfg),
+		NewConfigRuntimeResolver(cfg),
 		NewConfigInferenceResolver(cfg),
 		NewConfigMCPResolver(cfg),
 		NewLocalSkillResolver(t.TempDir()),
@@ -127,7 +127,7 @@ func TestResolver_FrameworkAgent_CustomEnvMapping(t *testing.T) {
 func TestResolver_AppliesDefaults(t *testing.T) {
 	cfg := testConfig()
 	r := NewResolver(
-		NewConfigHarnessResolver(cfg),
+		NewConfigRuntimeResolver(cfg),
 		NewConfigInferenceResolver(cfg),
 		NewConfigMCPResolver(cfg),
 		NewLocalSkillResolver(t.TempDir()),
@@ -162,7 +162,7 @@ func TestResolver_SkillsMergePromptAndDeps(t *testing.T) {
 		"---\nrequires:\n  mcp: [github]\n  tools: [shell]\n---\n\n# Security\nCheck XSS.\n")
 
 	r := NewResolver(
-		NewConfigHarnessResolver(cfg),
+		NewConfigRuntimeResolver(cfg),
 		NewConfigInferenceResolver(cfg),
 		NewConfigMCPResolver(cfg),
 		NewLocalSkillResolver(skillsDir),
