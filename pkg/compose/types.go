@@ -1,17 +1,12 @@
 package compose
 
-type HarnessProfile struct {
+type RuntimeProfile struct {
 	Name       string            `yaml:"name,omitempty"`
+	Kind       string            `yaml:"kind"`            // harness | framework | raw
 	Image      string            `yaml:"image"`
-	EnvMapping EnvMapping        `yaml:"env-mapping"`
+	EnvMapping map[string]string `yaml:"env-mapping"`     // N-var template map
 	Entrypoint []string          `yaml:"entrypoint"`
 	Tools      []string          `yaml:"tools"`
-}
-
-type EnvMapping struct {
-	Endpoint string `yaml:"endpoint"`
-	Key      string `yaml:"key"`
-	Model    string `yaml:"model"`
 }
 
 type InferenceSpec struct {
@@ -47,7 +42,7 @@ type Defaults struct {
 
 type Agent struct {
 	Name       string            `yaml:"name"`
-	Harness    string            `yaml:"harness,omitempty"`
+	Runtime    string            `yaml:"runtime,omitempty"`
 	Image      string            `yaml:"image,omitempty"`
 	Prompt     string            `yaml:"prompt,omitempty"`
 	PromptFile string            `yaml:"prompt-file,omitempty"`
@@ -59,7 +54,7 @@ type Agent struct {
 	Policy     string            `yaml:"policy,omitempty"`
 	Sandbox    SandboxOpts       `yaml:"sandbox,omitempty"`
 	Env        map[string]string `yaml:"env,omitempty"`
-	EnvMapping *EnvMapping       `yaml:"env-mapping,omitempty"`
+	EnvMapping map[string]string `yaml:"env-mapping,omitempty"`
 	Entrypoint []string          `yaml:"entrypoint,omitempty"`
 	Workspace  string            `yaml:"workspace,omitempty"`
 }

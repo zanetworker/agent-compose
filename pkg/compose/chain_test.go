@@ -7,7 +7,7 @@ import (
 )
 
 func TestChainedHarnessResolver_FallsThrough(t *testing.T) {
-	empty := NewConfigHarnessResolver(&Config{Harnesses: map[string]HarnessProfile{}})
+	empty := NewConfigHarnessResolver(&Config{Runtimes: map[string]RuntimeProfile{}})
 	withData := NewConfigHarnessResolver(DefaultConfig())
 
 	chain := NewChainedHarnessResolver(empty, withData)
@@ -23,8 +23,8 @@ func TestChainedHarnessResolver_FallsThrough(t *testing.T) {
 
 func TestChainedHarnessResolver_FirstWins(t *testing.T) {
 	override := NewConfigHarnessResolver(&Config{
-		Harnesses: map[string]HarnessProfile{
-			"claude-code": {Image: "custom-image:v1"},
+		Runtimes: map[string]RuntimeProfile{
+			"claude-code": {Kind: "harness", Image: "custom-image:v1"},
 		},
 	})
 	defaults := NewConfigHarnessResolver(DefaultConfig())
@@ -41,8 +41,8 @@ func TestChainedHarnessResolver_FirstWins(t *testing.T) {
 }
 
 func TestChainedHarnessResolver_AllMiss(t *testing.T) {
-	empty1 := NewConfigHarnessResolver(&Config{Harnesses: map[string]HarnessProfile{}})
-	empty2 := NewConfigHarnessResolver(&Config{Harnesses: map[string]HarnessProfile{}})
+	empty1 := NewConfigHarnessResolver(&Config{Runtimes: map[string]RuntimeProfile{}})
+	empty2 := NewConfigHarnessResolver(&Config{Runtimes: map[string]RuntimeProfile{}})
 
 	chain := NewChainedHarnessResolver(empty1, empty2)
 

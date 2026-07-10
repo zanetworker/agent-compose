@@ -48,25 +48,27 @@ func (r *Resolver) Resolve(ctx context.Context, agent Agent) (*ResolvedSpec, err
 		agent.Policy = r.defaults.Policy
 	}
 
-	// Resolve harness or use direct image
-	var envMapping EnvMapping
-	if agent.Harness != "" {
-		profile, err := r.harnesses.Resolve(ctx, agent.Harness)
+	// Resolve runtime or use direct image
+	var envMapping map[string]string
+	if agent.Runtime != "" {
+		profile, err := r.harnesses.Resolve(ctx, agent.Runtime)
 		if err != nil {
-			return nil, fmt.Errorf("resolving harness: %w", err)
+			return nil, fmt.Errorf("resolving runtime: %w", err)
 		}
 		spec.Image = profile.Image
 		spec.Entrypoint = profile.Entrypoint
 		spec.Tools = profile.Tools
+		spec.RuntimeKind = profile.Kind
 		envMapping = profile.EnvMapping
 	} else if agent.Image != "" {
 		spec.Image = agent.Image
 		spec.Entrypoint = agent.Entrypoint
+		spec.RuntimeKind = "raw"
 		if agent.EnvMapping != nil {
-			envMapping = *agent.EnvMapping
+			envMapping = agent.EnvMapping
 		}
 	} else {
-		return nil, fmt.Errorf("agent %q: must specify harness or image", agent.Name)
+		return nil, fmt.Errorf("agent %q: must specify runtime or image", agent.Name)
 	}
 
 	// Resolve inference
@@ -75,16 +77,19 @@ func (r *Resolver) Resolve(ctx context.Context, agent Agent) (*ResolvedSpec, err
 		if err != nil {
 			return nil, fmt.Errorf("resolving inference: %w", err)
 		}
-		if envMapping.Endpoint != "" {
-			spec.Env[envMapping.Endpoint] = infSpec.Endpoint
-		}
+		// TODO(Task 5): Use ExpandEnvMapping to populate spec.Env from N-var template map
+		// For now, stub this out. The old 3-field EnvMapping logic is removed.
+		// Task 5 will wire the N-var expansion function here with bindings:
+		// {"endpoint": infSpec.Endpoint, "key": "<from policy>", "model": model}
+		_ = envMapping
+		_ = infSpec
+
 		model := infSpec.DefaultModel
 		if agent.Model != "" {
 			model = agent.Model
 		}
-		if envMapping.Model != "" && model != "" {
-			spec.Env[envMapping.Model] = model
-		}
+		_ = model
+
 		spec.Providers = appendUnique(spec.Providers, infSpec.Provider)
 		spec.Egress = appendUnique(spec.Egress, infSpec.Egress...)
 	}

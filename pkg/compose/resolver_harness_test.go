@@ -17,8 +17,8 @@ func TestConfigHarnessResolver_Resolve_BuiltIn(t *testing.T) {
 	if profile.Image != "ghcr.io/anthropics/claude-code:latest" {
 		t.Errorf("image = %q, want ghcr.io/anthropics/claude-code:latest", profile.Image)
 	}
-	if profile.EnvMapping.Endpoint != "ANTHROPIC_BASE_URL" {
-		t.Errorf("env-mapping.endpoint = %q, want ANTHROPIC_BASE_URL", profile.EnvMapping.Endpoint)
+	if profile.EnvMapping["ANTHROPIC_BASE_URL"] != "${endpoint}" {
+		t.Errorf("env-mapping[ANTHROPIC_BASE_URL] = %q, want ${endpoint}", profile.EnvMapping["ANTHROPIC_BASE_URL"])
 	}
 }
 

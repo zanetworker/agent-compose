@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	Harnesses map[string]HarnessProfile `yaml:"harnesses"`
+	Runtimes  map[string]RuntimeProfile `yaml:"runtimes"`
 	Inference map[string]InferenceSpec  `yaml:"inference"`
 	MCP       map[string]MCPSpec        `yaml:"mcp"`
 	Defaults  Defaults                  `yaml:"defaults"`

@@ -14,7 +14,7 @@ func testEngine(t *testing.T) (*Engine, *bytes.Buffer) {
 	cfg := testConfig()
 	cfg.Agents["reviewer"] = Agent{
 		Name:    "reviewer",
-		Harness: "claude-code",
+		Runtime: "claude-code",
 		Prompt:  "Review code.",
 		MCP:     []string{"github"},
 	}
@@ -93,7 +93,7 @@ func TestEngine_Run_InlineAgent(t *testing.T) {
 	_, err := engine.Run(context.Background(), "", RunOpts{
 		Agent: &Agent{
 			Name:      "inline-test",
-			Harness:   "claude-code",
+			Runtime:   "claude-code",
 			Inference: "maas",
 			Prompt:    "Inline agent.",
 		},
@@ -178,12 +178,13 @@ func TestEngine_Validate(t *testing.T) {
 	// We'll test with a temp file
 	tmpfile := t.TempDir() + "/config.yaml"
 	data := `
-harnesses:
+runtimes:
   test:
+    kind: harness
     image: example:latest
 agents:
   test:
-    harness: test
+    runtime: test
 `
 	if err := os.WriteFile(tmpfile, []byte(data), 0644); err != nil {
 		t.Fatalf("writeFile failed: %v", err)

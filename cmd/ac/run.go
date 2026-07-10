@@ -11,7 +11,7 @@ func runCmd() *cobra.Command {
 	var (
 		prompt    string
 		workspace string
-		harness   string
+		runtime   string
 		inference string
 		mcp       []string
 		skills    []string
@@ -33,11 +33,11 @@ func runCmd() *cobra.Command {
 			}
 
 			if len(args) == 0 {
-				if harness == "" {
-					return fmt.Errorf("either provide an agent name or --harness")
+				if runtime == "" {
+					return fmt.Errorf("either provide an agent name or --runtime")
 				}
 				opts.Agent = &compose.Agent{
-					Harness:   harness,
+					Runtime:   runtime,
 					Inference: inference,
 					MCP:       mcp,
 					Skills:    skills,
@@ -66,7 +66,7 @@ func runCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&prompt, "prompt", "", "task prompt")
 	cmd.Flags().StringVar(&workspace, "workspace", "", "workspace path")
-	cmd.Flags().StringVar(&harness, "harness", "", "harness profile (for inline agents)")
+	cmd.Flags().StringVar(&runtime, "runtime", "", "runtime profile (for inline agents)")
 	cmd.Flags().StringVar(&inference, "inference", "", "inference provider (for inline agents)")
 	cmd.Flags().StringSliceVar(&mcp, "mcp", nil, "MCP servers (for inline agents)")
 	cmd.Flags().StringSliceVar(&skills, "skills", nil, "skills (for inline agents)")
