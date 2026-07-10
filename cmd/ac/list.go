@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -9,9 +10,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func psCmd() *cobra.Command {
+func listCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "ps",
+		Use:   "list",
 		Short: "List running agents",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			engine, err := buildEngine()
@@ -21,6 +22,11 @@ func psCmd() *cobra.Command {
 			agents, err := engine.List(cmd.Context())
 			if err != nil {
 				return err
+			}
+			if jsonOutput {
+				data, _ := json.MarshalIndent(agents, "", "  ")
+				fmt.Fprintln(os.Stdout, string(data))
+				return nil
 			}
 			if len(agents) == 0 {
 				fmt.Println("No running agents")

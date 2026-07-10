@@ -177,12 +177,12 @@ func TestEngine_Logs(t *testing.T) {
 	}
 }
 
-func TestEngine_Inspect(t *testing.T) {
+func TestEngine_Get(t *testing.T) {
 	engine, _ := testEngine(t)
 
-	spec, err := engine.Inspect(context.Background(), "reviewer")
+	spec, err := engine.Get(context.Background(), "reviewer")
 	if err != nil {
-		t.Fatalf("Inspect failed: %v", err)
+		t.Fatalf("Get failed: %v", err)
 	}
 	if spec.Name != "reviewer" {
 		t.Errorf("name = %q, want reviewer", spec.Name)

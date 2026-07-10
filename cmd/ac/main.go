@@ -14,6 +14,7 @@ var (
 	configPath string
 	skillsDir  string
 	dryRun     bool
+	jsonOutput bool
 )
 
 func main() {
@@ -30,13 +31,14 @@ func main() {
 	root.PersistentFlags().StringVar(&configPath, "config", defaultConfig, "path to config.yaml")
 	root.PersistentFlags().StringVar(&skillsDir, "skills-dir", defaultSkills, "path to skills directory")
 	root.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "print openshell commands without executing")
+	root.PersistentFlags().BoolVar(&jsonOutput, "json", false, "output as JSON")
 
 	root.AddCommand(initCmd())
 	root.AddCommand(runCmd())
 	root.AddCommand(stopCmd())
-	root.AddCommand(psCmd())
+	root.AddCommand(listCmd())
 	root.AddCommand(logsCmd())
-	root.AddCommand(inspectCmd())
+	root.AddCommand(getCmd())
 
 	if err := root.Execute(); err != nil {
 		os.Exit(1)

@@ -8,11 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func inspectCmd() *cobra.Command {
+func getCmd() *cobra.Command {
 	var outputFormat string
 
 	cmd := &cobra.Command{
-		Use:   "inspect <agent-name>",
+		Use:   "get <agent-name>",
 		Short: "Show fully resolved agent spec",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -20,7 +20,7 @@ func inspectCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			spec, err := engine.Inspect(cmd.Context(), args[0])
+			spec, err := engine.Get(cmd.Context(), args[0])
 			if err != nil {
 				return err
 			}

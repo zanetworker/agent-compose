@@ -151,7 +151,7 @@ func (e *Engine) Logs(ctx context.Context, name string) (io.ReadCloser, error) {
 	return e.executor.SandboxLogs(ctx, name)
 }
 
-func (e *Engine) Inspect(ctx context.Context, name string) (*ResolvedSpec, error) {
+func (e *Engine) Get(ctx context.Context, name string) (*ResolvedSpec, error) {
 	return e.Resolve(ctx, name)
 }
 
