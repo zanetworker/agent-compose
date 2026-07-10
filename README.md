@@ -1,18 +1,18 @@
 # agent-compose
 
-Compose agents with the right model, MCP servers, skills, and credentials, and run them securely in OpenShell sandboxes. Zero plumbing.
+Agent composition engine for OpenShell. Resolves declarative agent configs into sandbox commands. One declaration replaces 8 manual steps.
 
 ## The Problem
 
-Running an agent in an OpenShell sandbox requires 8+ manual configuration steps: choosing the right image, creating providers, figuring out framework-specific env vars, configuring egress, assembling prompts. Every framework (Claude Code, Codex, ADK, LangGraph) uses different env var names for the same concepts.
+Running an agent in an OpenShell sandbox requires 8+ manual steps: choosing the right image, creating providers for credentials, figuring out framework-specific env vars (`ANTHROPIC_BASE_URL` vs `OPENAI_BASE_URL` vs `GOOGLE_GENAI_BASE_URL`), setting those vars, configuring egress, assembling prompts. Every framework uses different names for the same concepts.
 
 ## The Solution
 
-A composition engine that resolves declarative agent configs into raw `openshell` commands. Catalogs provide the menu (what's available). Agent config is the order (what I want). The engine connects them into a running sandbox.
+A composition engine that connects catalogs (what's available) to sandboxes (where agents run). You declare what the agent needs; the engine resolves it into raw `openshell` commands.
 
 ```
-Catalogs (what's available)    Agent Config (what I want)    Engine (connect)    OpenShell (run)
-models, MCP, skills, policies  harness + inference + mcp     resolve             sandbox create
+Catalogs (config.yaml)     Agent Config (what I want)     Engine (resolve)     OpenShell (run)
+models, MCP, skills        runtime + inference + mcp      ResolvedSpec         sandbox create
 ```
 
 ## Quick Start
@@ -23,31 +23,50 @@ make build
 
 # Initialize config
 ./ac init
-# Edit ~/.agentctl/config.yaml to add your inference providers and MCP servers
+# Edit ~/.agentctl/config.yaml with your inference providers and MCP servers
 
-# Run an agent (zero config, dry-run)
-./ac run --harness claude-code --inference maas --prompt "Review this code" --dry-run
+# Run an agent with inline flags (zero config needed)
+./ac run --runtime claude-code --inference maas --prompt "Review this code" --dry-run
 
-# Run a named agent
+# Run a named agent from config
 ./ac run code-reviewer --workspace ./my-project --dry-run
 
-# Inspect resolved config
-./ac inspect code-reviewer
+# Show fully resolved spec as JSON
+./ac get code-reviewer --json
 
 # List running agents
-./ac ps
+./ac list
 
 # Stop an agent
 ./ac stop code-reviewer
 ```
 
+## What the Engine Produces
+
+```bash
+$ ./ac run --runtime claude-code --prompt "test" --dry-run
+
+openshell sandbox create --name inline-1234 \
+  --image ghcr.io/anthropics/claude-code:latest \
+  --provider maas-anthropic \
+  --env ANTHROPIC_BASE_URL=https://maas.apps.cluster.com/v1 \
+  --env ANTHROPIC_DEFAULT_SONNET_MODEL=granite-3.3-8b-instruct \
+  --policy restricted \
+  --scope session --mode all --ttl 30m \
+  --label agentctl.io/agent=inline-1234
+
+openshell sandbox exec inline-1234 -- claude --prompt-file /workspace/prompt.md
+```
+
+All 8 manual steps collapsed into one command. No new OpenShell primitives.
+
 ## Config
 
-One file for infrastructure (`~/.agentctl/config.yaml`), one entry per agent. Three friction tiers:
+One file (`~/.agentctl/config.yaml`). Three friction tiers:
 
 **Zero files (CLI flags):**
 ```bash
-ac run --harness claude-code --inference maas --mcp github --prompt "Review this"
+ac run --runtime claude-code --inference maas --mcp github --prompt "Review this"
 ```
 
 **Named agent (config entry):**
@@ -55,7 +74,7 @@ ac run --harness claude-code --inference maas --mcp github --prompt "Review this
 # ~/.agentctl/config.yaml
 agents:
   code-reviewer:
-    harness: claude-code
+    runtime: claude-code
     inference: maas
     mcp: [github]
     skills: [security-review]
@@ -68,30 +87,66 @@ ac run code-reviewer
 **Separate files (GitOps):**
 ```
 my-agents-repo/
-├── config.yaml
-├── agents/
-└── skills/
++-- config.yaml
++-- agents/
++-- skills/
 ```
 
 ## Agent Types
 
-| Type | Declaration | Examples |
-|---|---|---|
-| Harness agent | `harness: claude-code` | Claude Code, Codex, Goose |
-| Framework agent | `image:` + `env-mapping:` | ADK, LangGraph, CrewAI |
-| Custom agent | `image:` + `entrypoint:` | Any container |
+One field, `runtime:`, discriminates three kinds:
 
-Harness profiles translate between "inference endpoint" (generic) and framework-specific env vars (`ANTHROPIC_BASE_URL` vs `OPENAI_BASE_URL` vs `GOOGLE_GENAI_BASE_URL`).
+| `runtime.kind` | Declaration | Examples |
+|---|---|---|
+| **harness** | `runtime: claude-code` | Claude Code, Codex, Goose |
+| **framework** | `image:` + `env-mapping:` | ADK, LangGraph, CrewAI |
+| **raw** | `image:` + `entrypoint:` | Any container |
+
+## N-var Env-Mapping
+
+Runtime profiles use template maps (not fixed slots) to handle any framework's env var conventions, including multi-tier models and auth toggles:
+
+```yaml
+runtimes:
+  claude-code:
+    kind: harness
+    image: ghcr.io/anthropics/claude-code@sha256:...
+    env-mapping:
+      ANTHROPIC_BASE_URL:             "${endpoint}"
+      ANTHROPIC_API_KEY:              "${key}"
+      ANTHROPIC_DEFAULT_SONNET_MODEL: "${model}"
+      ANTHROPIC_DEFAULT_OPUS_MODEL:   "${model.opus}"
+      ANTHROPIC_DEFAULT_HAIKU_MODEL:  "${model.haiku}"
+```
+
+Inference providers define the values and optional tier overrides:
+
+```yaml
+inference:
+  maas:
+    endpoint: https://maas.apps.cluster.com/v1
+    provider: maas-anthropic
+    default-model: granite-3.3-8b-instruct
+    models:
+      opus: granite-3.3-8b-instruct
+      haiku: granite-3.3-2b-instruct
+```
+
+Override at run time with `--inference` and `--model`:
+
+```bash
+ac run code-reviewer --inference vertex --model gemini-2.5-pro
+```
 
 ## Skills
 
-Skills are reusable bundles of prompt instructions + tool/MCP requirements.
+Reusable bundles of prompt instructions + tool/MCP requirements:
 
 ```
 ~/.agentctl/skills/security-review/
-├── SKILL.md           # prompt (appended to agent's prompt)
-└── references/        # mounted at /workspace/skills/<name>/
-    └── owasp-top-10.md
++-- SKILL.md           # prompt (appended to agent's prompt)
++-- references/        # mounted at /workspace/skills/<name>/
+    +-- owasp-top-10.md
 ```
 
 SKILL.md can declare dependencies:
@@ -108,22 +163,29 @@ When reviewing code, check for SQL injection, XSS, auth bypass...
 
 ## Architecture
 
-The core is a Go library (`pkg/compose/`). CLI and API are thin interfaces.
+The core is a Go library (`pkg/compose/`). CLI is a thin cobra wrapper.
 
 ```
-┌─────────┐   ┌─────────┐   ┌─────────┐
-│   CLI   │   │   API   │   │   SDK   │
-│  (ac)   │   │ (HTTP)  │   │(Go pkg) │
-└────┬────┘   └────┬────┘   └────┬────┘
-     └──────────┬──┘──────────┘
-                ▼
-         Core Engine
-     Resolver → ResolvedSpec
-                ▼
-         openshell CLI
++----------+   +----------+   +----------+
+|   CLI    |   |   API    |   |   SDK    |
+|   (ac)   |   |  (v2)    |   | (Go pkg) |
++----+-----+   +----+-----+   +----+-----+
+     +--------+-----+---------+
+              v
+        Core Engine
+    Resolvers -> ResolvedSpec
+              v
+     Executor (pluggable)
+       |            |
+  CLIExecutor   SDKExecutor (future)
+  (openshell)   (OpenShell Go SDK)
 ```
 
-**Resolver interfaces** are pluggable. V1 reads from config.yaml. V2 can discover models from KServe, MCP servers from MCP Gateway, skills from OCI registries.
+**Resolver interfaces** are pluggable. V1 reads from config.yaml. Future versions discover models from KServe, MCP servers from MCP Gateway, skills from OCI registries.
+
+**Executor interface** is pluggable. V1 shells out to the `openshell` binary. When the OpenShell SDK ships, swap in `SDKExecutor` with one line.
+
+**No local run database.** OpenShell sandbox labels (`agentctl.io/agent`) are the source of truth for run state. `list`/`stop`/`logs` query the executor, never a local store.
 
 ```go
 engine := compose.New(
@@ -132,34 +194,48 @@ engine := compose.New(
     compose.WithSkillsDir("~/.agentctl/skills"),
 )
 
-// Resolve only (for harnesses/frameworks that create their own sandboxes)
-spec, _ := engine.Resolve(ctx, "code-reviewer")
+// Resolve only (for harnesses that create their own sandboxes)
+spec, _ := engine.Resolve(ctx, "code-reviewer", compose.ResolveOpts{})
 
 // Or resolve + create + run
-run, _ := engine.Run(ctx, "code-reviewer", compose.RunOpts{Prompt: "Check PR #42"})
+run, _ := engine.Run(ctx, "code-reviewer", compose.RunOpts{Workspace: "./repo"})
 ```
 
-## Built-in Harness Profiles
+## Sandbox Lifecycle
 
-| Harness | Image | Env Vars |
-|---|---|---|
-| claude-code | ghcr.io/anthropics/claude-code:latest | ANTHROPIC_BASE_URL, ANTHROPIC_API_KEY, ANTHROPIC_DEFAULT_SONNET_MODEL |
-| codex | ghcr.io/openai/codex:latest | OPENAI_BASE_URL, OPENAI_API_KEY, OPENAI_MODEL |
-| goose | ghcr.io/block/goose:latest | OPENAI_BASE_URL, OPENAI_API_KEY, GOOSE_MODEL |
-| adk | python:3.12-slim | GOOGLE_GENAI_BASE_URL, GOOGLE_API_KEY, GOOGLE_GENAI_MODEL |
+Sandboxes have scope, mode, and TTL:
 
-Add custom profiles in `config.yaml` under `harnesses:`.
+```yaml
+defaults:
+  sandbox:
+    scope: session    # session | agent | shared
+    mode: all         # all | non-main | off
+    ttl: 30m          # idle timeout before reaping
+```
 
 ## Commands
 
 ```
-ac init                Create ~/.agentctl/ with default config
-ac run <name> [flags]  Resolve + create sandbox + start agent
-ac stop <name>         Stop agent + delete sandbox
-ac ps                  List running agents
-ac logs <name>         Stream sandbox output
-ac inspect <name>      Show fully resolved spec as JSON
+ac init                 Create ~/.agentctl/ with default config
+ac run <name> [flags]   Resolve + create sandbox + start agent
+ac stop <name>          Stop agent + delete sandbox
+ac list                 List running agents
+ac get <name>           Show fully resolved spec as JSON
+ac logs <name>          Stream sandbox output
 ```
+
+Global flags: `--json`, `--dry-run`, `--config <path>`, `--skills-dir <path>`
+
+## Built-in Runtime Profiles
+
+| Runtime | Kind | Image | Key Env Vars |
+|---|---|---|---|
+| claude-code | harness | ghcr.io/anthropics/claude-code | ANTHROPIC_BASE_URL, ANTHROPIC_API_KEY, ANTHROPIC_DEFAULT_SONNET_MODEL |
+| codex | harness | ghcr.io/openai/codex | OPENAI_BASE_URL, OPENAI_API_KEY, OPENAI_MODEL |
+| goose | harness | ghcr.io/block/goose | OPENAI_BASE_URL, OPENAI_API_KEY, GOOSE_MODEL |
+| adk | framework | python:3.12-slim | GOOGLE_GENAI_BASE_URL, GOOGLE_API_KEY, GOOGLE_GENAI_MODEL |
+
+Add custom profiles under `runtimes:` in config.yaml.
 
 ## Development
 
