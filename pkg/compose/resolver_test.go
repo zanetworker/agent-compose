@@ -2,6 +2,7 @@ package compose
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -51,14 +52,12 @@ func TestResolver_HarnessAgent(t *testing.T) {
 	if spec.Image != "ghcr.io/anthropics/claude-code:latest" {
 		t.Errorf("image = %q", spec.Image)
 	}
-	// TODO(Task 5): Re-enable these assertions after N-var env-mapping is wired
-	// For now, env vars are stubbed out in resolver.go
-	// if spec.Env["ANTHROPIC_BASE_URL"] != "https://maas.example.com/v1" {
-	// 	t.Errorf("ANTHROPIC_BASE_URL = %q", spec.Env["ANTHROPIC_BASE_URL"])
-	// }
-	// if spec.Env["ANTHROPIC_DEFAULT_SONNET_MODEL"] != "granite-3.3-8b" {
-	// 	t.Errorf("ANTHROPIC_DEFAULT_SONNET_MODEL = %q", spec.Env["ANTHROPIC_DEFAULT_SONNET_MODEL"])
-	// }
+	if spec.Env["ANTHROPIC_BASE_URL"] != "https://maas.example.com/v1" {
+		t.Errorf("ANTHROPIC_BASE_URL = %q", spec.Env["ANTHROPIC_BASE_URL"])
+	}
+	if spec.Env["ANTHROPIC_DEFAULT_SONNET_MODEL"] != "granite-3.3-8b" {
+		t.Errorf("ANTHROPIC_DEFAULT_SONNET_MODEL = %q", spec.Env["ANTHROPIC_DEFAULT_SONNET_MODEL"])
+	}
 
 	providers := spec.Providers
 	if !contains(providers, "maas-anthropic") {
@@ -115,13 +114,12 @@ func TestResolver_FrameworkAgent_CustomEnvMapping(t *testing.T) {
 	if spec.Image != "quay.io/acme/agent:v1" {
 		t.Errorf("image = %q", spec.Image)
 	}
-	// TODO(Task 5): Re-enable these assertions after N-var env-mapping is wired
-	// if spec.Env["OPENAI_BASE_URL"] != "https://maas.example.com/v1" {
-	// 	t.Errorf("OPENAI_BASE_URL = %q, want https://maas.example.com/v1", spec.Env["OPENAI_BASE_URL"])
-	// }
-	// if spec.Env["MODEL_NAME"] != "granite-3.3-8b" {
-	// 	t.Errorf("MODEL_NAME = %q", spec.Env["MODEL_NAME"])
-	// }
+	if spec.Env["OPENAI_BASE_URL"] != "https://maas.example.com/v1" {
+		t.Errorf("OPENAI_BASE_URL = %q, want https://maas.example.com/v1", spec.Env["OPENAI_BASE_URL"])
+	}
+	if spec.Env["MODEL_NAME"] != "granite-3.3-8b" {
+		t.Errorf("MODEL_NAME = %q", spec.Env["MODEL_NAME"])
+	}
 }
 
 func TestResolver_AppliesDefaults(t *testing.T) {
@@ -146,10 +144,9 @@ func TestResolver_AppliesDefaults(t *testing.T) {
 		t.Fatalf("Resolve failed: %v", err)
 	}
 
-	// TODO(Task 5): Re-enable this assertion after N-var env-mapping is wired
-	// if spec.Env["ANTHROPIC_BASE_URL"] != "https://maas.example.com/v1" {
-	// 	t.Errorf("default inference not applied: ANTHROPIC_BASE_URL = %q", spec.Env["ANTHROPIC_BASE_URL"])
-	// }
+	if spec.Env["ANTHROPIC_BASE_URL"] != "https://maas.example.com/v1" {
+		t.Errorf("default inference not applied: ANTHROPIC_BASE_URL = %q", spec.Env["ANTHROPIC_BASE_URL"])
+	}
 	if spec.Policy != "restricted" {
 		t.Errorf("default policy not applied: policy = %q", spec.Policy)
 	}
@@ -203,4 +200,138 @@ func contains(ss []string, s string) bool {
 		}
 	}
 	return false
+}
+
+// staticRuntimeResolver implements RuntimeResolver for tests
+type staticRuntimeResolver struct {
+	profiles map[string]RuntimeProfile
+}
+
+func (s *staticRuntimeResolver) Resolve(_ context.Context, name string) (*RuntimeProfile, error) {
+	profile, ok := s.profiles[name]
+	if !ok {
+		return nil, fmt.Errorf("runtime profile %q not found", name)
+	}
+	return &profile, nil
+}
+
+func (s *staticRuntimeResolver) List(_ context.Context) ([]RuntimeProfile, error) {
+	profiles := make([]RuntimeProfile, 0, len(s.profiles))
+	for _, p := range s.profiles {
+		profiles = append(profiles, p)
+	}
+	return profiles, nil
+}
+
+// staticInferenceResolver implements InferenceResolver for tests
+type staticInferenceResolver struct {
+	specs map[string]InferenceSpec
+}
+
+func (s *staticInferenceResolver) Resolve(_ context.Context, name string) (*InferenceSpec, error) {
+	spec, ok := s.specs[name]
+	if !ok {
+		return nil, fmt.Errorf("inference spec %q not found", name)
+	}
+	return &spec, nil
+}
+
+func (s *staticInferenceResolver) List(_ context.Context) ([]InferenceSpec, error) {
+	specs := make([]InferenceSpec, 0, len(s.specs))
+	for _, s := range s.specs {
+		specs = append(specs, s)
+	}
+	return specs, nil
+}
+
+// noopMCPResolver implements MCPResolver for tests
+type noopMCPResolver struct{}
+
+func (n *noopMCPResolver) Resolve(_ context.Context, _ string) (*MCPSpec, error) {
+	return &MCPSpec{}, nil
+}
+
+func (n *noopMCPResolver) List(_ context.Context) ([]MCPSpec, error) {
+	return nil, nil
+}
+
+// noopSkillResolver implements SkillResolver for tests
+type noopSkillResolver struct{}
+
+func (n *noopSkillResolver) Resolve(_ context.Context, _ string) (*Skill, error) {
+	return &Skill{}, nil
+}
+
+func (n *noopSkillResolver) List(_ context.Context) ([]Skill, error) {
+	return nil, nil
+}
+
+// noopPolicyResolver implements PolicyResolver for tests
+type noopPolicyResolver struct{}
+
+func (n *noopPolicyResolver) Resolve(_ context.Context, _ string) (*Policy, error) {
+	return &Policy{}, nil
+}
+
+func (n *noopPolicyResolver) List(_ context.Context) ([]Policy, error) {
+	return nil, nil
+}
+
+func TestResolver_NVarEnvMapping(t *testing.T) {
+	runtimes := &staticRuntimeResolver{
+		profiles: map[string]RuntimeProfile{
+			"claude-code": {
+				Kind:  "harness",
+				Image: "ghcr.io/anthropics/claude-code:latest",
+				EnvMapping: map[string]string{
+					"ANTHROPIC_BASE_URL":             "${endpoint}",
+					"ANTHROPIC_API_KEY":              "${key}",
+					"ANTHROPIC_DEFAULT_SONNET_MODEL": "${model}",
+					"ANTHROPIC_DEFAULT_OPUS_MODEL":   "${model.opus}",
+					"ANTHROPIC_DEFAULT_HAIKU_MODEL":  "${model.haiku}",
+				},
+				Entrypoint: []string{"claude"},
+				Tools:      []string{"shell"},
+			},
+		},
+	}
+	inference := &staticInferenceResolver{
+		specs: map[string]InferenceSpec{
+			"maas": {
+				Endpoint:     "https://maas.example.com/v1",
+				Provider:     "maas-anthropic",
+				DefaultModel: "granite-3.3-8b",
+				Models: map[string]string{
+					"opus":  "granite-3.3-8b",
+					"haiku": "granite-3.3-2b",
+				},
+				Egress: []string{"maas.example.com:443"},
+			},
+		},
+	}
+
+	r := NewResolver(runtimes, inference, &noopMCPResolver{}, &noopSkillResolver{}, &noopPolicyResolver{}, Defaults{Inference: "maas", Sandbox: SandboxOpts{Scope: "session", Mode: "all", TTL: "30m"}})
+	spec, err := r.Resolve(nil, Agent{Name: "test", Runtime: "claude-code"})
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+
+	if spec.Env["ANTHROPIC_BASE_URL"] != "https://maas.example.com/v1" {
+		t.Errorf("endpoint: got %q", spec.Env["ANTHROPIC_BASE_URL"])
+	}
+	if spec.Env["ANTHROPIC_DEFAULT_SONNET_MODEL"] != "granite-3.3-8b" {
+		t.Errorf("model: got %q", spec.Env["ANTHROPIC_DEFAULT_SONNET_MODEL"])
+	}
+	if spec.Env["ANTHROPIC_DEFAULT_OPUS_MODEL"] != "granite-3.3-8b" {
+		t.Errorf("opus tier: got %q", spec.Env["ANTHROPIC_DEFAULT_OPUS_MODEL"])
+	}
+	if spec.Env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] != "granite-3.3-2b" {
+		t.Errorf("haiku tier: got %q", spec.Env["ANTHROPIC_DEFAULT_HAIKU_MODEL"])
+	}
+	if spec.RuntimeKind != "harness" {
+		t.Errorf("runtime kind: got %q", spec.RuntimeKind)
+	}
+	if spec.Sandbox.TTL != "30m" {
+		t.Errorf("sandbox TTL: got %q", spec.Sandbox.TTL)
+	}
 }

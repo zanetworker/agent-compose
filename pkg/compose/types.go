@@ -10,11 +10,12 @@ type RuntimeProfile struct {
 }
 
 type InferenceSpec struct {
-	Name         string   `yaml:"name,omitempty"`
-	Endpoint     string   `yaml:"endpoint"`
-	Provider     string   `yaml:"provider"`
-	DefaultModel string   `yaml:"default-model"`
-	Egress       []string `yaml:"egress"`
+	Name         string            `yaml:"name,omitempty"`
+	Endpoint     string            `yaml:"endpoint"`
+	Provider     string            `yaml:"provider"`
+	DefaultModel string            `yaml:"default-model"`
+	Models       map[string]string `yaml:"models,omitempty"` // tier overrides: opus, haiku, etc.
+	Egress       []string          `yaml:"egress"`
 }
 
 type MCPSpec struct {

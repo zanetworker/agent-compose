@@ -77,18 +77,26 @@ func (r *Resolver) Resolve(ctx context.Context, agent Agent) (*ResolvedSpec, err
 		if err != nil {
 			return nil, fmt.Errorf("resolving inference: %w", err)
 		}
-		// TODO(Task 5): Use ExpandEnvMapping to populate spec.Env from N-var template map
-		// For now, stub this out. The old 3-field EnvMapping logic is removed.
-		// Task 5 will wire the N-var expansion function here with bindings:
-		// {"endpoint": infSpec.Endpoint, "key": "<from policy>", "model": model}
-		_ = envMapping
-		_ = infSpec
 
 		model := infSpec.DefaultModel
 		if agent.Model != "" {
 			model = agent.Model
 		}
-		_ = model
+
+		// Build template vars for N-var expansion
+		templateVars := map[string]string{
+			"endpoint": infSpec.Endpoint,
+			"key":      "", // key comes from the provider, not the config
+			"model":    model,
+		}
+		for tier, tierModel := range infSpec.Models {
+			templateVars["model."+tier] = tierModel
+		}
+
+		expanded := ExpandEnvMapping(envMapping, templateVars)
+		for k, v := range expanded {
+			spec.Env[k] = v
+		}
 
 		spec.Providers = appendUnique(spec.Providers, infSpec.Provider)
 		spec.Egress = appendUnique(spec.Egress, infSpec.Egress...)
@@ -160,6 +168,18 @@ func (r *Resolver) Resolve(ctx context.Context, agent Agent) (*ResolvedSpec, err
 	}
 
 	spec.Workspace = agent.Workspace
+
+	// Apply sandbox opts from defaults
+	spec.Sandbox = r.defaults.Sandbox
+	if agent.Sandbox.Scope != "" {
+		spec.Sandbox.Scope = agent.Sandbox.Scope
+	}
+	if agent.Sandbox.Mode != "" {
+		spec.Sandbox.Mode = agent.Sandbox.Mode
+	}
+	if agent.Sandbox.TTL != "" {
+		spec.Sandbox.TTL = agent.Sandbox.TTL
+	}
 
 	return spec, nil
 }
