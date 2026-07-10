@@ -49,7 +49,7 @@ func DefaultConfig() *Config {
 		Agents:    make(map[string]Agent),
 		Defaults: Defaults{
 			Policy: "restricted",
-			Sandbox: SandboxConfig{
+			Sandbox: SandboxOpts{
 				Scope: "session",
 				Mode:  "all",
 			},

@@ -33,15 +33,16 @@ type Policy struct {
 	Path string `yaml:"path,omitempty"`
 }
 
-type SandboxConfig struct {
-	Scope string `yaml:"scope"` // session | agent | shared
-	Mode  string `yaml:"mode"`  // all | non-main | off
+type SandboxOpts struct {
+	Scope string `yaml:"scope" json:"scope,omitempty"` // session | agent | shared
+	Mode  string `yaml:"mode" json:"mode,omitempty"`   // all | non-main | off
+	TTL   string `yaml:"ttl" json:"ttl,omitempty"`     // e.g. "30m"
 }
 
 type Defaults struct {
-	Inference string        `yaml:"inference"`
-	Policy    string        `yaml:"policy"`
-	Sandbox   SandboxConfig `yaml:"sandbox"`
+	Inference string      `yaml:"inference"`
+	Policy    string      `yaml:"policy"`
+	Sandbox   SandboxOpts `yaml:"sandbox"`
 }
 
 type Agent struct {
@@ -56,7 +57,7 @@ type Agent struct {
 	Skills     []string          `yaml:"skills,omitempty"`
 	Tools      []string          `yaml:"tools,omitempty"`
 	Policy     string            `yaml:"policy,omitempty"`
-	Sandbox    SandboxConfig     `yaml:"sandbox,omitempty"`
+	Sandbox    SandboxOpts       `yaml:"sandbox,omitempty"`
 	Env        map[string]string `yaml:"env,omitempty"`
 	EnvMapping *EnvMapping       `yaml:"env-mapping,omitempty"`
 	Entrypoint []string          `yaml:"entrypoint,omitempty"`
@@ -69,18 +70,20 @@ type Mount struct {
 }
 
 type ResolvedSpec struct {
-	Name        string
-	Labels      map[string]string
-	Image       string
-	Entrypoint  []string
-	Providers   []string
-	Env         map[string]string
-	Egress      []string
-	Policy      string
-	Tools       []string
-	Prompt      string
-	SkillMounts []Mount
-	Workspace   string
+	Name        string            `json:"name"`
+	Labels      map[string]string `json:"labels"`
+	RuntimeKind string            `json:"runtime_kind"` // harness | framework | raw
+	Image       string            `json:"image"`
+	Entrypoint  []string          `json:"entrypoint"`
+	Providers   []string          `json:"providers"`
+	Env         map[string]string `json:"env"`
+	Egress      []string          `json:"egress"`
+	Policy      string            `json:"policy"`
+	Tools       []string          `json:"tools"`
+	Sandbox     SandboxOpts       `json:"sandbox"`
+	Prompt      string            `json:"prompt"`
+	SkillMounts []Mount           `json:"skill_mounts,omitempty"`
+	Workspace   string            `json:"workspace"`
 }
 
 type SandboxState string
