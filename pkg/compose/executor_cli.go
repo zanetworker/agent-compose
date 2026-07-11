@@ -18,6 +18,10 @@ func NewCLIExecutor(binary string) *CLIExecutor {
 	return &CLIExecutor{binary: binary}
 }
 
+func (e *CLIExecutor) BinaryPath() string {
+	return e.binary
+}
+
 func (e *CLIExecutor) CreateSandbox(ctx context.Context, name string, spec *ResolvedSpec) error {
 	args := []string{"sandbox", "create", "--name", name, "--image", spec.Image}
 	for _, p := range spec.Providers {

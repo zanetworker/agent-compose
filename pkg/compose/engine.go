@@ -169,6 +169,14 @@ type ValidationError struct {
 	Message string
 }
 
+func (e *Engine) SyncProfiles(ctx context.Context) ([]string, error) {
+	openshellBin := "openshell"
+	if cliExec, ok := e.executor.(*CLIExecutor); ok {
+		openshellBin = cliExec.BinaryPath()
+	}
+	return SyncProfiles(ctx, e.config, openshellBin)
+}
+
 func (e *Engine) findAgent(name string) (*Agent, error) {
 	agent, ok := e.config.Agents[name]
 	if !ok {
