@@ -13,6 +13,7 @@ func runCmd() *cobra.Command {
 		workspace string
 		runtime   string
 		inference string
+		model     string
 		mcp       []string
 		skills    []string
 	)
@@ -30,6 +31,8 @@ func runCmd() *cobra.Command {
 			opts := compose.RunOpts{
 				Prompt:    prompt,
 				Workspace: workspace,
+				Inference: inference,
+				Model:     model,
 			}
 
 			if len(args) == 0 {
@@ -38,7 +41,6 @@ func runCmd() *cobra.Command {
 				}
 				opts.Agent = &compose.Agent{
 					Runtime:   runtime,
-					Inference: inference,
 					MCP:       mcp,
 					Skills:    skills,
 					Prompt:    prompt,
@@ -67,9 +69,10 @@ func runCmd() *cobra.Command {
 	cmd.Flags().StringVar(&prompt, "prompt", "", "task prompt")
 	cmd.Flags().StringVar(&workspace, "workspace", "", "workspace path")
 	cmd.Flags().StringVar(&runtime, "runtime", "", "runtime profile (for inline agents)")
-	cmd.Flags().StringVar(&inference, "inference", "", "inference provider (for inline agents)")
-	cmd.Flags().StringSliceVar(&mcp, "mcp", nil, "MCP servers (for inline agents)")
-	cmd.Flags().StringSliceVar(&skills, "skills", nil, "skills (for inline agents)")
+	cmd.Flags().StringVar(&inference, "inference", "", "override inference provider")
+	cmd.Flags().StringVar(&model, "model", "", "override model")
+	cmd.Flags().StringSliceVar(&mcp, "mcp", nil, "MCP servers")
+	cmd.Flags().StringSliceVar(&skills, "skills", nil, "skills")
 
 	return cmd
 }

@@ -10,6 +10,8 @@ import (
 type RunOpts struct {
 	Prompt    string
 	Workspace string
+	Inference string // override inference provider for this run
+	Model     string // override model for this run
 	Agent     *Agent // inline agent (when name is empty)
 }
 
@@ -87,6 +89,16 @@ func (e *Engine) Run(ctx context.Context, name string, opts RunOpts) (*Run, erro
 	if opts.Workspace != "" {
 		agentCopy := *agent
 		agentCopy.Workspace = opts.Workspace
+		agent = &agentCopy
+	}
+	if opts.Inference != "" {
+		agentCopy := *agent
+		agentCopy.Inference = opts.Inference
+		agent = &agentCopy
+	}
+	if opts.Model != "" {
+		agentCopy := *agent
+		agentCopy.Model = opts.Model
 		agent = &agentCopy
 	}
 
