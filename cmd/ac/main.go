@@ -40,6 +40,7 @@ func main() {
 	root.AddCommand(logsCmd())
 	root.AddCommand(getCmd())
 	root.AddCommand(applyCmd())
+	root.AddCommand(doctorCmd())
 
 	if err := root.Execute(); err != nil {
 		os.Exit(1)
