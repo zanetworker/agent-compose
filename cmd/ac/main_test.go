@@ -121,19 +121,19 @@ func TestInitCommand(t *testing.T) {
 	}
 
 	// Check directory was created
-	agentctlDir := filepath.Join(home, ".agentctl")
-	if _, err := os.Stat(agentctlDir); os.IsNotExist(err) {
-		t.Fatal("expected .agentctl directory to be created")
+	acDir := filepath.Join(home, ".ac")
+	if _, err := os.Stat(acDir); os.IsNotExist(err) {
+		t.Fatal("expected .ac directory to be created")
 	}
 
 	// Check config.yaml was created
-	cfgPath := filepath.Join(agentctlDir, "config.yaml")
+	cfgPath := filepath.Join(acDir, "config.yaml")
 	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
 		t.Fatal("expected config.yaml to be created")
 	}
 
 	// Check skills directory was created
-	skillsPath := filepath.Join(agentctlDir, "skills")
+	skillsPath := filepath.Join(acDir, "skills")
 	if _, err := os.Stat(skillsPath); os.IsNotExist(err) {
 		t.Fatal("expected skills directory to be created")
 	}

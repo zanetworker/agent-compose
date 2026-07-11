@@ -25,8 +25,8 @@ func main() {
 	}
 
 	home, _ := os.UserHomeDir()
-	defaultConfig := filepath.Join(home, ".agentctl", "config.yaml")
-	defaultSkills := filepath.Join(home, ".agentctl", "skills")
+	defaultConfig := filepath.Join(home, ".ac", "config.yaml")
+	defaultSkills := filepath.Join(home, ".ac", "skills")
 
 	root.PersistentFlags().StringVar(&configPath, "config", defaultConfig, "path to config.yaml")
 	root.PersistentFlags().StringVar(&skillsDir, "skills-dir", defaultSkills, "path to skills directory")

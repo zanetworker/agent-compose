@@ -13,10 +13,10 @@ import (
 func initCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "init",
-		Short: "Create ~/.agentctl/ with default config",
+		Short: "Create ~/.ac/ with default config",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			home, _ := os.UserHomeDir()
-			dir := filepath.Join(home, ".agentctl")
+			dir := filepath.Join(home, ".ac")
 			if err := os.MkdirAll(filepath.Join(dir, "skills"), 0755); err != nil {
 				return err
 			}
