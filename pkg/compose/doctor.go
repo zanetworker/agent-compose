@@ -1,9 +1,15 @@
 package compose
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 // CheckResult represents the result of a single health check
@@ -15,14 +21,22 @@ type CheckResult struct {
 	Message  string `json:"message,omitempty"`
 }
 
-// Doctor runs health checks against the config. It does NOT make network
-// calls (that would require a live cluster). Instead it checks:
+// Doctor runs health checks against the config and the live OpenShell environment.
+// It checks:
 // - Config integrity: all references resolve (agent references a runtime that exists, etc.)
 // - Skills exist on disk
 // - No duplicate names
 // - Required fields are populated
-func Doctor(cfg *Config, skillsDir string) []CheckResult {
+// - OpenShell gateway is reachable
+// - Profiles are synced
+// - Providers exist
+// - Inference endpoints are reachable
+// - Models are available
+func Doctor(cfg *Config, skillsDir string, openshellBin string) []CheckResult {
 	var results []CheckResult
+	ctx := context.Background()
+
+	// === Config checks (existing) ===
 
 	// Check runtimes
 	for name, runtime := range cfg.Runtimes {
@@ -72,6 +86,44 @@ func Doctor(cfg *Config, skillsDir string) []CheckResult {
 				Check:    "exists in config",
 				Status:   "ok",
 			})
+		}
+	}
+
+	// === Live checks ===
+
+	// 1. Gateway
+	gwResult := checkGateway(ctx, openshellBin)
+	results = append(results, gwResult)
+	gatewayUp := gwResult.Status == "ok"
+
+	if gatewayUp {
+		// 2. Profiles synced
+		results = append(results, checkProfilesSynced(ctx, openshellBin, cfg)...)
+		// 3. Providers exist
+		results = append(results, checkProvidersExist(ctx, openshellBin, cfg)...)
+	} else {
+		results = append(results, CheckResult{
+			Category: "OpenShell",
+			Name:     "profiles",
+			Check:    "synced",
+			Status:   "fail",
+			Message:  "skipped (gateway not reachable)",
+		})
+		results = append(results, CheckResult{
+			Category: "OpenShell",
+			Name:     "providers",
+			Check:    "exist",
+			Status:   "fail",
+			Message:  "skipped (gateway not reachable)",
+		})
+	}
+
+	// 4-5. Inference endpoints + models
+	for name, inf := range cfg.Inference {
+		epResult := checkEndpointReachable(ctx, name, inf.Endpoint)
+		results = append(results, epResult)
+		if epResult.Status == "ok" {
+			results = append(results, checkModelAvailable(ctx, name, inf.Endpoint, inf.DefaultModel))
 		}
 	}
 
@@ -324,4 +376,200 @@ func checkAgent(name string, agent Agent, cfg *Config) []CheckResult {
 	}
 
 	return results
+}
+
+// === Live environment checks ===
+
+func checkGateway(ctx context.Context, bin string) CheckResult {
+	cmd := exec.CommandContext(ctx, bin, "status")
+	if err := cmd.Run(); err != nil {
+		return CheckResult{
+			Category: "OpenShell",
+			Name:     "gateway",
+			Check:    "reachable",
+			Status:   "fail",
+			Message:  "is openshell gateway running?",
+		}
+	}
+	return CheckResult{
+		Category: "OpenShell",
+		Name:     "gateway",
+		Check:    "reachable",
+		Status:   "ok",
+	}
+}
+
+func checkProfilesSynced(ctx context.Context, bin string, cfg *Config) []CheckResult {
+	var results []CheckResult
+
+	// Run openshell provider list-profiles -o json
+	cmd := exec.CommandContext(ctx, bin, "provider", "list-profiles", "-o", "json")
+	output, err := cmd.Output()
+	if err != nil {
+		return []CheckResult{{
+			Category: "OpenShell",
+			Name:     "profiles",
+			Check:    "synced",
+			Status:   "fail",
+			Message:  "could not list profiles",
+		}}
+	}
+
+	outputStr := string(output)
+
+	// Check inference profiles
+	for name := range cfg.Inference {
+		if !strings.Contains(outputStr, name) {
+			results = append(results, CheckResult{
+				Category: "OpenShell",
+				Name:     name,
+				Check:    "profile synced",
+				Status:   "fail",
+				Message:  "run: ac apply --sync-profiles",
+			})
+		} else {
+			results = append(results, CheckResult{
+				Category: "OpenShell",
+				Name:     name,
+				Check:    "profile synced",
+				Status:   "ok",
+			})
+		}
+	}
+
+	// Check MCP profiles
+	for name := range cfg.MCP {
+		if !strings.Contains(outputStr, name) {
+			results = append(results, CheckResult{
+				Category: "OpenShell",
+				Name:     name,
+				Check:    "profile synced",
+				Status:   "fail",
+				Message:  "run: ac apply --sync-profiles",
+			})
+		} else {
+			results = append(results, CheckResult{
+				Category: "OpenShell",
+				Name:     name,
+				Check:    "profile synced",
+				Status:   "ok",
+			})
+		}
+	}
+
+	return results
+}
+
+func checkProvidersExist(ctx context.Context, bin string, cfg *Config) []CheckResult {
+	var results []CheckResult
+
+	// Run openshell provider list -o json
+	cmd := exec.CommandContext(ctx, bin, "provider", "list", "-o", "json")
+	output, err := cmd.Output()
+	if err != nil {
+		return []CheckResult{{
+			Category: "OpenShell",
+			Name:     "providers",
+			Check:    "exist",
+			Status:   "fail",
+			Message:  "could not list providers",
+		}}
+	}
+
+	outputStr := string(output)
+
+	// Check inference providers
+	for name, inf := range cfg.Inference {
+		if !strings.Contains(outputStr, inf.Provider) {
+			results = append(results, CheckResult{
+				Category: "OpenShell",
+				Name:     name,
+				Check:    "provider exists",
+				Status:   "fail",
+				Message:  fmt.Sprintf("run: openshell provider create %s <profile-type>", inf.Provider),
+			})
+		} else {
+			results = append(results, CheckResult{
+				Category: "OpenShell",
+				Name:     name,
+				Check:    "provider exists",
+				Status:   "ok",
+			})
+		}
+	}
+
+	// Check MCP providers
+	for name, mcp := range cfg.MCP {
+		if !strings.Contains(outputStr, mcp.Provider) {
+			results = append(results, CheckResult{
+				Category: "OpenShell",
+				Name:     name,
+				Check:    "provider exists",
+				Status:   "fail",
+				Message:  fmt.Sprintf("run: openshell provider create %s <profile-type>", mcp.Provider),
+			})
+		} else {
+			results = append(results, CheckResult{
+				Category: "OpenShell",
+				Name:     name,
+				Check:    "provider exists",
+				Status:   "ok",
+			})
+		}
+	}
+
+	return results
+}
+
+func checkEndpointReachable(ctx context.Context, name, endpoint string) CheckResult {
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(endpoint)
+	if err != nil {
+		return CheckResult{
+			Category: "Inference",
+			Name:     name,
+			Check:    "endpoint reachable",
+			Status:   "fail",
+			Message:  err.Error(),
+		}
+	}
+	resp.Body.Close()
+	return CheckResult{
+		Category: "Inference",
+		Name:     name,
+		Check:    "endpoint reachable",
+		Status:   "ok",
+	}
+}
+
+func checkModelAvailable(ctx context.Context, name, endpoint, model string) CheckResult {
+	client := &http.Client{Timeout: 5 * time.Second}
+	modelsURL := strings.TrimRight(endpoint, "/") + "/v1/models"
+	resp, err := client.Get(modelsURL)
+	if err != nil {
+		return CheckResult{
+			Category: "Inference",
+			Name:     name,
+			Check:    fmt.Sprintf("model %s available", model),
+			Status:   "fail",
+			Message:  "could not reach models endpoint",
+		}
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if strings.Contains(string(body), model) {
+		return CheckResult{
+			Category: "Inference",
+			Name:     name,
+			Check:    fmt.Sprintf("model %s available", model),
+			Status:   "ok",
+		}
+	}
+	return CheckResult{
+		Category: "Inference",
+		Name:     name,
+		Check:    fmt.Sprintf("model %s available", model),
+		Status:   "fail",
+		Message:  "model not found in /v1/models response",
+	}
 }

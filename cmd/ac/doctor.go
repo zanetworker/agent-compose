@@ -11,7 +11,9 @@ import (
 )
 
 func doctorCmd() *cobra.Command {
-	return &cobra.Command{
+	var openshellBin string
+
+	cmd := &cobra.Command{
 		Use:   "doctor",
 		Short: "Validate config and check that all references resolve",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -24,7 +26,7 @@ func doctorCmd() *cobra.Command {
 				}
 				return err
 			}
-			results := compose.Doctor(cfg, skillsDir)
+			results := compose.Doctor(cfg, skillsDir, openshellBin)
 
 			if jsonOutput {
 				data, _ := json.MarshalIndent(results, "", "  ")
@@ -64,4 +66,7 @@ func doctorCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVar(&openshellBin, "openshell-bin", "openshell", "Path to openshell binary")
+	return cmd
 }
