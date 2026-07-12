@@ -23,7 +23,7 @@ func (e *CLIExecutor) BinaryPath() string {
 }
 
 func (e *CLIExecutor) CreateSandbox(ctx context.Context, name string, spec *ResolvedSpec) error {
-	args := []string{"sandbox", "create", "--name", name, "--from", spec.Image}
+	args := []string{"sandbox", "create", "--name", name, "--from", spec.Image, "--auto-providers", "--no-tty"}
 	for _, p := range spec.Providers {
 		args = append(args, "--provider", p)
 	}

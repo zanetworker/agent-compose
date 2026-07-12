@@ -7,6 +7,7 @@ type RuntimeProfile struct {
 	EnvMapping map[string]string `yaml:"env-mapping"`     // N-var template map
 	Entrypoint []string          `yaml:"entrypoint"`
 	Tools      []string          `yaml:"tools"`
+	Providers  []string          `yaml:"providers,omitempty"` // OpenShell provider profiles to attach
 }
 
 type InferenceSpec struct {

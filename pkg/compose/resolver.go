@@ -59,6 +59,7 @@ func (r *Resolver) Resolve(ctx context.Context, agent Agent) (*ResolvedSpec, err
 		spec.Entrypoint = profile.Entrypoint
 		spec.Tools = profile.Tools
 		spec.RuntimeKind = profile.Kind
+		spec.Providers = appendUnique(spec.Providers, profile.Providers...)
 		envMapping = profile.EnvMapping
 	} else if agent.Image != "" {
 		spec.Image = agent.Image

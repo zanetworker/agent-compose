@@ -83,16 +83,37 @@ func TestLoadConfig_FileNotFound(t *testing.T) {
 	}
 }
 
-func TestDefaultConfig_HasBuiltInHarnesses(t *testing.T) {
+func TestDefaultConfig_HasBuiltInRuntimes(t *testing.T) {
 	cfg := DefaultConfig()
-	for _, name := range []string{"claude-code", "codex", "goose", "adk"} {
+	expected := map[string]string{
+		"claude-code":        "harness",
+		"claude-code-vertex": "harness",
+		"codex":              "harness",
+		"goose":              "harness",
+		"adk":                "framework",
+	}
+	for name, wantKind := range expected {
 		rt, ok := cfg.Runtimes[name]
 		if !ok {
 			t.Errorf("default config missing built-in runtime %q", name)
+			continue
 		}
-		if rt.Kind != "harness" {
-			t.Errorf("runtime %q has kind=%q, want harness", name, rt.Kind)
+		if rt.Kind != wantKind {
+			t.Errorf("runtime %q has kind=%q, want %q", name, rt.Kind, wantKind)
 		}
+	}
+}
+
+func TestDefaultConfig_RuntimeProviders(t *testing.T) {
+	cfg := DefaultConfig()
+	if providers := cfg.Runtimes["claude-code"].Providers; len(providers) == 0 || providers[0] != "claude-code" {
+		t.Errorf("claude-code runtime should declare claude-code provider, got %v", providers)
+	}
+	if providers := cfg.Runtimes["claude-code-vertex"].Providers; len(providers) == 0 || providers[0] != "google-vertex-ai" {
+		t.Errorf("claude-code-vertex runtime should declare google-vertex-ai provider, got %v", providers)
+	}
+	if providers := cfg.Runtimes["adk"].Providers; len(providers) == 0 || providers[0] != "google-vertex-ai" {
+		t.Errorf("adk runtime should declare google-vertex-ai provider, got %v", providers)
 	}
 }
 
