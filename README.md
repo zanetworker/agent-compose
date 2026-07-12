@@ -309,14 +309,15 @@ If the gateway isn't reachable, it reports that and skips checks that depend on 
 
 ## Built-in Runtime Profiles
 
-| Runtime | Kind | Image | Key Env Vars |
-|---|---|---|---|
-| claude-code | harness | ghcr.io/anthropics/claude-code | ANTHROPIC_BASE_URL, ANTHROPIC_API_KEY, ANTHROPIC_DEFAULT_SONNET_MODEL |
-| codex | harness | ghcr.io/openai/codex | OPENAI_BASE_URL, OPENAI_API_KEY, OPENAI_MODEL |
-| goose | harness | ghcr.io/block/goose | OPENAI_BASE_URL, OPENAI_API_KEY, GOOSE_MODEL |
-| adk | framework | python:3.12-slim | GOOGLE_GENAI_BASE_URL, GOOGLE_API_KEY, GOOGLE_GENAI_MODEL |
+| Runtime | Kind | Image | OpenShell Provider | Env Vars (non-credential) |
+|---|---|---|---|---|
+| claude-code | harness | ghcr.io/anthropics/claude-code | claude-code | ANTHROPIC_BASE_URL, ANTHROPIC_DEFAULT_SONNET_MODEL |
+| claude-code-vertex | harness | ghcr.io/anthropics/claude-code | google-vertex-ai | CLAUDE_CODE_USE_VERTEX, CLOUD_ML_REGION, ANTHROPIC_VERTEX_PROJECT_ID |
+| codex | harness | ghcr.io/openai/codex | codex | OPENAI_BASE_URL, OPENAI_MODEL |
+| goose | harness | ghcr.io/block/goose | (none) | OPENAI_BASE_URL, GOOSE_MODEL |
+| adk | framework | python:3.12-slim | google-vertex-ai | GOOGLE_GENAI_MODEL |
 
-Add custom profiles under `runtimes:` in config.yaml.
+Credentials (API keys, tokens) are handled by OpenShell providers, not env vars. Only framework-specific vars (model names, endpoint overrides) go through the env-mapping.
 
 ## Personas and When GitOps Makes Sense
 
@@ -384,7 +385,21 @@ GitOps is essential here: agent definitions are reviewed in PRs, rollback is `gi
 
 ## Current Status
 
-The composition engine and CLI are complete. The resolution pipeline, all CLI commands, and dry-run mode have been functionally tested. Live execution against an OpenShell gateway (`ac run` without `--dry-run`, `ac apply --sync-profiles`, `ac doctor` live checks) requires a running gateway and has not been end-to-end tested yet.
+End-to-end tested against a live OpenShell gateway (podman driver, local):
+
+| Test | Result |
+|---|---|
+| Claude Code via Vertex AI in sandbox | "Hello! Let's code." |
+| Python agent calling qwen3-14b (GPU cluster) in sandbox | Model responded with code |
+| `ac doctor` (config + live gateway checks) | Working |
+| `ac apply --sync-profiles` (skips built-in profiles) | Working |
+| `ac list` / `ac stop` (sandbox lifecycle) | Working |
+| `ac get --json` (resolved spec) | Working |
+| `--inference` / `--model` overrides | Working |
+
+**Known upstream gaps:**
+- OpenShell's `google-vertex-ai` provider profile is missing `oauth2.googleapis.com` in its endpoints, requiring a manual policy update for Vertex auth token refresh
+- Claude Code's Vertex integration uses file-based ADC (`GOOGLE_APPLICATION_CREDENTIALS`), not OpenShell's metadata emulator. Workaround: `--upload` the ADC file. Proper fix is upstream (metadata emulator support for Claude Code's auth path)
 
 ## Development
 
