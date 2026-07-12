@@ -55,7 +55,7 @@ func (e *DryRunExecutor) CreateSandbox(_ context.Context, name string, spec *Res
 }
 
 func (e *DryRunExecutor) ExecInSandbox(_ context.Context, name string, cmd []string) error {
-	args := append([]string{"openshell", "sandbox", "exec", name, "--"}, cmd...)
+	args := append([]string{"openshell", "sandbox", "exec", "--name", name, "--"}, cmd...)
 	fmt.Fprintln(e.out, strings.Join(args, " "))
 	return nil
 }

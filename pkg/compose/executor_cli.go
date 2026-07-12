@@ -50,7 +50,7 @@ func (e *CLIExecutor) CreateSandbox(ctx context.Context, name string, spec *Reso
 }
 
 func (e *CLIExecutor) ExecInSandbox(ctx context.Context, name string, cmd []string) error {
-	args := append([]string{"sandbox", "exec", name, "--"}, cmd...)
+	args := append([]string{"sandbox", "exec", "--name", name, "--"}, cmd...)
 	return e.run(ctx, args...)
 }
 
@@ -59,7 +59,7 @@ func (e *CLIExecutor) DeleteSandbox(ctx context.Context, name string) error {
 }
 
 func (e *CLIExecutor) SandboxLogs(ctx context.Context, name string) (io.ReadCloser, error) {
-	cmd := exec.CommandContext(ctx, e.binary, "sandbox", "logs", name)
+	cmd := exec.CommandContext(ctx, e.binary, "logs", name)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("sandbox logs pipe: %w", err)
@@ -72,24 +72,21 @@ func (e *CLIExecutor) SandboxLogs(ctx context.Context, name string) (io.ReadClos
 
 func (e *CLIExecutor) SandboxStatus(ctx context.Context, name string) (SandboxState, error) {
 	var out bytes.Buffer
-	cmd := exec.CommandContext(ctx, e.binary, "sandbox", "status", name)
+	cmd := exec.CommandContext(ctx, e.binary, "sandbox", "list", "--names")
 	cmd.Stdout = &out
 	if err := cmd.Run(); err != nil {
 		return SandboxUnknown, nil
 	}
-	status := strings.TrimSpace(out.String())
-	switch {
-	case strings.Contains(status, "running"):
-		return SandboxRunning, nil
-	case strings.Contains(status, "stopped"), strings.Contains(status, "exited"):
-		return SandboxStopped, nil
-	default:
-		return SandboxUnknown, nil
+	for _, line := range strings.Split(out.String(), "\n") {
+		if strings.TrimSpace(line) == name {
+			return SandboxRunning, nil
+		}
 	}
+	return SandboxStopped, nil
 }
 
 func (e *CLIExecutor) ListSandboxes(ctx context.Context, labelSelector string) ([]string, error) {
-	args := []string{"sandbox", "list", "--label", labelSelector, "--quiet"}
+	args := []string{"sandbox", "list", "--names"}
 	var out bytes.Buffer
 	cmd := exec.CommandContext(ctx, e.binary, args...)
 	cmd.Stdout = &out
