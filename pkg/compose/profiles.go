@@ -109,17 +109,21 @@ func GenerateProfiles(cfg *Config) []ProviderProfile {
 // It writes each profile to a temp file and calls the CLI.
 // Returns the list of profile IDs that were synced.
 func SyncProfiles(ctx context.Context, cfg *Config, openshellBin string) ([]string, error) {
+	existing := listExistingProfiles(ctx, openshellBin)
+
 	profiles := GenerateProfiles(cfg)
 	var synced []string
 
 	for _, profile := range profiles {
-		// Marshal to YAML
+		if existing[profile.ID] {
+			continue
+		}
+
 		data, err := yaml.Marshal(profile)
 		if err != nil {
 			return synced, fmt.Errorf("marshaling profile %s: %w", profile.ID, err)
 		}
 
-		// Write to temp file
 		tmpfile, err := os.CreateTemp("", fmt.Sprintf("profile-%s-*.yaml", profile.ID))
 		if err != nil {
 			return synced, fmt.Errorf("creating temp file for %s: %w", profile.ID, err)
@@ -132,21 +136,40 @@ func SyncProfiles(ctx context.Context, cfg *Config, openshellBin string) ([]stri
 		}
 		tmpfile.Close()
 
-		// Import via openshell CLI
 		cmd := exec.CommandContext(ctx, openshellBin, "provider", "profile", "import", "-f", tmpfile.Name())
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			// Check if profile already exists (idempotent)
-			if strings.Contains(string(output), "already exists") {
+			outStr := string(output)
+			if strings.Contains(outStr, "already exists") || strings.Contains(outStr, "built-in") {
 				continue
 			}
-			return synced, fmt.Errorf("importing profile %s: %w\noutput: %s", profile.ID, err, output)
+			return synced, fmt.Errorf("importing profile %s: %w\noutput: %s", profile.ID, err, outStr)
 		}
 
 		synced = append(synced, profile.ID)
 	}
 
 	return synced, nil
+}
+
+func listExistingProfiles(ctx context.Context, bin string) map[string]bool {
+	cmd := exec.CommandContext(ctx, bin, "provider", "list-profiles", "-o", "json")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	profiles := make(map[string]bool)
+	for _, line := range strings.Split(string(output), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.Contains(line, `"id"`) {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 {
+				id := strings.Trim(strings.TrimSpace(parts[1]), `",`)
+				profiles[id] = true
+			}
+		}
+	}
+	return profiles
 }
 
 // parseEgress parses an egress string (format "host:port") into a ProfileEndpoint.

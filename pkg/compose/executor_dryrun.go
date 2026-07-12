@@ -17,7 +17,7 @@ func NewDryRunExecutor(out io.Writer) *DryRunExecutor {
 }
 
 func (e *DryRunExecutor) CreateSandbox(_ context.Context, name string, spec *ResolvedSpec) error {
-	args := []string{"openshell", "sandbox", "create", "--name", name, "--image", spec.Image}
+	args := []string{"openshell", "sandbox", "create", "--name", name, "--from", spec.Image}
 	for _, p := range spec.Providers {
 		args = append(args, "--provider", p)
 	}

@@ -23,7 +23,7 @@ func (e *CLIExecutor) BinaryPath() string {
 }
 
 func (e *CLIExecutor) CreateSandbox(ctx context.Context, name string, spec *ResolvedSpec) error {
-	args := []string{"sandbox", "create", "--name", name, "--image", spec.Image}
+	args := []string{"sandbox", "create", "--name", name, "--from", spec.Image}
 	for _, p := range spec.Providers {
 		args = append(args, "--provider", p)
 	}
@@ -37,6 +37,14 @@ func (e *CLIExecutor) CreateSandbox(ctx context.Context, name string, spec *Reso
 	}
 	if spec.Policy != "" {
 		args = append(args, "--policy", spec.Policy)
+	}
+	labelKeys := make([]string, 0, len(spec.Labels))
+	for k := range spec.Labels {
+		labelKeys = append(labelKeys, k)
+	}
+	sort.Strings(labelKeys)
+	for _, k := range labelKeys {
+		args = append(args, "--label", fmt.Sprintf("%s=%s", k, spec.Labels[k]))
 	}
 	return e.run(ctx, args...)
 }

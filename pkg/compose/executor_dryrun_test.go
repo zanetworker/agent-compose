@@ -27,8 +27,8 @@ func TestDryRunExecutor_CreateSandbox(t *testing.T) {
 	if !strings.Contains(output, "openshell sandbox create") {
 		t.Errorf("output missing 'openshell sandbox create': %s", output)
 	}
-	if !strings.Contains(output, "--image ghcr.io/anthropics/claude-code:latest") {
-		t.Errorf("output missing --image: %s", output)
+	if !strings.Contains(output, "--from ghcr.io/anthropics/claude-code:latest") {
+		t.Errorf("output missing --from: %s", output)
 	}
 	if !strings.Contains(output, "--provider maas-anthropic") {
 		t.Errorf("output missing --provider maas-anthropic: %s", output)
