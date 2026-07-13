@@ -37,7 +37,7 @@ func TestEngine_Resolve(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Resolve failed: %v", err)
 	}
-	if spec.Image != "ghcr.io/anthropics/claude-code:latest" {
+	if spec.Image != "ghcr.io/nvidia/openshell-community/sandboxes/base:latest" {
 		t.Errorf("image = %q", spec.Image)
 	}
 }

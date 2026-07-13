@@ -16,8 +16,8 @@ func TestChainedRuntimeResolver_FallsThrough(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Resolve failed: %v", err)
 	}
-	if profile.Image != "ghcr.io/anthropics/claude-code:latest" {
-		t.Errorf("image = %q, want ghcr.io/anthropics/claude-code:latest", profile.Image)
+	if profile.Image != "ghcr.io/nvidia/openshell-community/sandboxes/base:latest" {
+		t.Errorf("image = %q, want ghcr.io/nvidia/openshell-community/sandboxes/base:latest", profile.Image)
 	}
 }
 

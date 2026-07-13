@@ -119,7 +119,12 @@ func (e *Engine) Run(ctx context.Context, name string, opts RunOpts) (*Run, erro
 		return nil, fmt.Errorf("creating sandbox: %w", err)
 	}
 
-	if err := e.executor.ExecInSandbox(ctx, sandboxName, spec.Entrypoint); err != nil {
+	cmd := spec.Entrypoint
+	if spec.Prompt != "" && spec.RuntimeKind == "harness" {
+		cmd = append(append([]string{}, cmd...), "-p", spec.Prompt, "--dangerously-skip-permissions")
+	}
+
+	if err := e.executor.ExecInSandbox(ctx, sandboxName, cmd); err != nil {
 		e.executor.DeleteSandbox(ctx, sandboxName)
 		return nil, fmt.Errorf("executing entrypoint: %w", err)
 	}

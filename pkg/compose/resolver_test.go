@@ -49,7 +49,7 @@ func TestResolver_HarnessAgent(t *testing.T) {
 		t.Fatalf("Resolve failed: %v", err)
 	}
 
-	if spec.Image != "ghcr.io/anthropics/claude-code:latest" {
+	if spec.Image != "ghcr.io/nvidia/openshell-community/sandboxes/base:latest" {
 		t.Errorf("image = %q", spec.Image)
 	}
 	if spec.Env["ANTHROPIC_BASE_URL"] != "https://maas.example.com/v1" {
@@ -282,7 +282,7 @@ func TestResolver_NVarEnvMapping(t *testing.T) {
 		profiles: map[string]RuntimeProfile{
 			"claude-code": {
 				Kind:  "harness",
-				Image: "ghcr.io/anthropics/claude-code:latest",
+				Image: "ghcr.io/nvidia/openshell-community/sandboxes/base:latest",
 				EnvMapping: map[string]string{
 					"ANTHROPIC_BASE_URL":             "${endpoint}",
 					"ANTHROPIC_API_KEY":              "${key}",

@@ -5,42 +5,42 @@ func DefaultConfig() *Config {
 		Runtimes: map[string]RuntimeProfile{
 			"claude-code": {
 				Kind:  "harness",
-				Image: "ghcr.io/anthropics/claude-code:latest",
+				Image: "ghcr.io/nvidia/openshell-community/sandboxes/base:latest",
 				EnvMapping: map[string]string{
 					"ANTHROPIC_BASE_URL":             "${endpoint}",
 					"ANTHROPIC_DEFAULT_SONNET_MODEL": "${model}",
 				},
-				Entrypoint: []string{"claude", "--prompt-file", "/workspace/prompt.md"},
+				Entrypoint: []string{"claude"},
 				Tools:      []string{"shell", "file-read", "file-write", "bundle-mcp"},
 				Providers:  []string{"claude-code"},
 			},
 			"claude-code-vertex": {
-				Kind: "harness",
-				Image: "ghcr.io/anthropics/claude-code:latest",
+				Kind:  "harness",
+				Image: "ghcr.io/nvidia/openshell-community/sandboxes/base:latest",
 				EnvMapping: map[string]string{
 					"CLAUDE_CODE_USE_VERTEX":         "1",
 					"CLOUD_ML_REGION":                "${region}",
 					"ANTHROPIC_VERTEX_PROJECT_ID":    "${project}",
 					"ANTHROPIC_DEFAULT_SONNET_MODEL": "${model}",
 				},
-				Entrypoint: []string{"claude", "--prompt-file", "/workspace/prompt.md"},
+				Entrypoint: []string{"claude"},
 				Tools:      []string{"shell", "file-read", "file-write", "bundle-mcp"},
 				Providers:  []string{"google-vertex-ai"},
 			},
 			"codex": {
 				Kind:  "harness",
-				Image: "ghcr.io/openai/codex:latest",
+				Image: "ghcr.io/nvidia/openshell-community/sandboxes/base:latest",
 				EnvMapping: map[string]string{
 					"OPENAI_BASE_URL": "${endpoint}",
 					"OPENAI_MODEL":    "${model}",
 				},
-				Entrypoint: []string{"codex", "--prompt-file", "/workspace/prompt.md"},
+				Entrypoint: []string{"codex"},
 				Tools:      []string{"shell", "file-read", "file-write"},
 				Providers:  []string{"codex"},
 			},
 			"goose": {
 				Kind:  "harness",
-				Image: "ghcr.io/block/goose:latest",
+				Image: "ghcr.io/nvidia/openshell-community/sandboxes/base:latest",
 				EnvMapping: map[string]string{
 					"OPENAI_BASE_URL": "${endpoint}",
 					"GOOSE_MODEL":     "${model}",
