@@ -179,6 +179,197 @@ ac run support
 
 The `google-vertex-ai` provider handles credentials via OpenShell's GCE metadata emulator. The ADK agent's Python code calls `google.auth.default()` and gets a token transparently.
 
+### Example 4: Composing an agent with MCP servers, skills, and prompt
+
+This is where agent-compose shines. Instead of wiring 8 things manually, you declare what the agent needs and the engine resolves everything.
+
+**Step 1: Platform engineer configures the infrastructure (once)**
+
+```yaml
+# ~/.ac/config.yaml
+
+runtimes:
+  claude-code:
+    kind: harness
+    image: ghcr.io/anthropics/claude-code:latest
+    env-mapping:
+      ANTHROPIC_BASE_URL: "${endpoint}"
+      ANTHROPIC_DEFAULT_SONNET_MODEL: "${model}"
+    entrypoint: ["claude", "--prompt-file", "/workspace/prompt.md"]
+    tools: [shell, file-read, file-write, bundle-mcp]
+    providers: [claude-code]
+
+inference:
+  maas:
+    endpoint: https://maas.apps.cluster.com/v1
+    provider: maas-anthropic
+    default-model: granite-3.3-8b-instruct
+    models:
+      opus: granite-3.3-8b-instruct
+      haiku: granite-3.3-2b-instruct
+
+mcp:
+  github:
+    provider: github
+    egress: [api.github.com:443, github.com:443]
+
+  jira:
+    provider: jira
+    egress: [redhat.atlassian.net:443]
+
+  slack:
+    provider: slack
+    egress: [slack.com:443, api.slack.com:443]
+
+defaults:
+  inference: maas
+  sandbox:
+    scope: session
+    mode: all
+    ttl: 30m
+```
+
+This defines: which runtimes exist, which inference endpoints are available, which MCP servers are reachable, and the defaults. Developers never touch this.
+
+**Step 2: Team lead creates skills (reusable prompt + dependency bundles)**
+
+```
+~/.ac/skills/
++-- security-review/
+|   +-- SKILL.md
+|   +-- references/
+|       +-- owasp-top-10.md
+|       +-- cwe-patterns.md
++-- pr-review/
+|   +-- SKILL.md
++-- test-writer/
+    +-- SKILL.md
+```
+
+Each SKILL.md is a prompt that can declare its own MCP and tool dependencies:
+
+```markdown
+# ~/.ac/skills/security-review/SKILL.md
+---
+requires:
+  mcp: [github]
+  tools: [shell, file-read]
+---
+
+# Security Review
+
+When reviewing code, check for:
+1. SQL injection (parameterized queries vs string concat)
+2. XSS (output encoding, CSP headers)
+3. Auth bypass (missing checks, IDOR)
+4. Secrets in code (API keys, passwords, tokens)
+
+Reference the OWASP top 10 at /workspace/skills/security-review/owasp-top-10.md
+```
+
+```markdown
+# ~/.ac/skills/pr-review/SKILL.md
+---
+requires:
+  mcp: [github, jira]
+  tools: [shell, file-read]
+---
+
+# PR Review
+
+1. Read the PR diff via GitHub MCP
+2. Check for related Jira tickets
+3. Review for correctness, security, and style
+4. Post review comments via GitHub MCP
+```
+
+Skills compose: if two skills both require `github`, it's deduplicated. If a skill requires an MCP server the agent didn't list, it gets added automatically.
+
+**Step 3: Team lead defines named agents (the compositions)**
+
+```yaml
+# in config.yaml or as separate files
+
+agents:
+  # Security-focused code reviewer
+  security-reviewer:
+    runtime: claude-code
+    inference: maas
+    mcp: [github]
+    skills: [security-review]
+    prompt: "You are a security-focused code reviewer. Be thorough but concise."
+
+  # Full PR reviewer with Jira integration
+  pr-reviewer:
+    runtime: claude-code
+    mcp: [github, jira]
+    skills: [pr-review, security-review]
+    prompt: "Review PRs end-to-end. Check Jira for context. Post inline comments."
+
+  # Test writer
+  test-writer:
+    runtime: claude-code
+    mcp: [github]
+    skills: [test-writer]
+    prompt: "Write tests for the changed files. Focus on edge cases."
+```
+
+Each agent is a composition of: runtime (how to run it) + inference (which model) + MCP servers (what tools it can access) + skills (what instructions and references it gets) + prompt (what to do).
+
+**Step 4: Developer runs agents**
+
+```bash
+# Run the security reviewer on a repo
+ac run security-reviewer --workspace ./my-project
+
+# Run the PR reviewer (has both github + jira MCP, two skills)
+ac run pr-reviewer --workspace ./my-project
+
+# Run the test writer with a different model
+ac run test-writer --model llama-3.3-70b --workspace ./my-project
+
+# Compose ad hoc: pick a runtime, add MCP servers and skills inline
+ac run --runtime claude-code \
+       --mcp github \
+       --mcp jira \
+       --skills security-review \
+       --skills pr-review \
+       --prompt "Review PR #42, cross-reference Jira tickets" \
+       --workspace ./my-project
+
+# See exactly what the engine resolved
+ac get pr-reviewer --json
+```
+
+**What the engine does for `ac run pr-reviewer`:**
+
+```
+1. Load agent "pr-reviewer" from config
+2. Resolve runtime "claude-code"
+   -> image, entrypoint, provider: claude-code
+3. Resolve inference "maas" (from defaults)
+   -> expand env-mapping: ANTHROPIC_BASE_URL, ANTHROPIC_DEFAULT_SONNET_MODEL
+4. Resolve MCP "github"
+   -> provider: github, egress: api.github.com:443
+5. Resolve MCP "jira"
+   -> provider: jira, egress: redhat.atlassian.net:443
+6. Resolve skill "pr-review"
+   -> appends PR review prompt
+   -> merges requires.mcp: [github, jira] (already present, deduped)
+   -> merges requires.tools: [shell, file-read]
+7. Resolve skill "security-review"
+   -> appends security review prompt
+   -> merges requires.mcp: [github] (already present)
+   -> mounts references/owasp-top-10.md at /workspace/skills/security-review/
+8. Assemble final prompt: agent prompt + pr-review prompt + security-review prompt
+9. Merge egress: [maas:443, api.github.com:443, github.com:443, redhat.atlassian.net:443]
+10. Collect providers: [claude-code, maas-anthropic, github, jira]
+11. Apply sandbox opts: scope=session, ttl=30m
+12. Return ResolvedSpec
+```
+
+The developer typed one command. The engine resolved 4 providers, 2 MCP servers, 2 skills (with deduped dependencies), assembled the prompt, and produced the sandbox spec. Without agent-compose, that's 8+ manual `openshell` commands with 20+ flags to get right every time.
+
 ## What the Engine Produces
 
 ```bash
