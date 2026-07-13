@@ -4,7 +4,7 @@ Agent composition engine for OpenShell. Declare what an agent needs (runtime, mo
 
 Written in Go as a library-first design (`pkg/compose`). The CLI (`ac`) is a thin wrapper. The same engine can be embedded into backend-for-frontend services, operator controllers, or dashboard APIs. When OpenShell ships a Go SDK, the executor swaps from CLI shelling to native SDK calls with zero API changes.
 
-![Sketch Note](docs/sketchnote.png)
+![agent-compose](docs/logo.png)
 
 ## Prerequisites
 
