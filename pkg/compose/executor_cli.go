@@ -38,6 +38,9 @@ func (e *CLIExecutor) CreateSandbox(ctx context.Context, name string, spec *Reso
 	if spec.Policy != "" {
 		args = append(args, "--policy", spec.Policy)
 	}
+	for _, m := range spec.SkillMounts {
+		args = append(args, "--upload", fmt.Sprintf("%s:%s", m.Source, m.Target))
+	}
 	labelKeys := make([]string, 0, len(spec.Labels))
 	for k := range spec.Labels {
 		labelKeys = append(labelKeys, k)

@@ -32,6 +32,9 @@ func (e *DryRunExecutor) CreateSandbox(_ context.Context, name string, spec *Res
 	if spec.Policy != "" {
 		args = append(args, "--policy", spec.Policy)
 	}
+	for _, m := range spec.SkillMounts {
+		args = append(args, "--upload", fmt.Sprintf("%s:%s", m.Source, m.Target))
+	}
 	if spec.Sandbox.Scope != "" {
 		args = append(args, "--scope", spec.Sandbox.Scope)
 	}
