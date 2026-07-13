@@ -2,22 +2,50 @@
 
 Agent composition engine for OpenShell. Declare what an agent needs (runtime, model, MCP servers, skills, prompt); the engine resolves it into a running, governed sandbox. One command replaces 8 manual steps.
 
-![Architecture](docs/architecture.png)
+Written in Go as a library-first design (`pkg/compose`). The CLI (`ac`) is a thin wrapper. The same engine can be embedded into backend-for-frontend services, operator controllers, or dashboard APIs. When OpenShell ships a Go SDK, the executor swaps from CLI shelling to native SDK calls with zero API changes.
+
+![Sketch Note](docs/sketchnote.png)
+
+## Prerequisites
+
+| What | Why | How to get it |
+|---|---|---|
+| **OpenShell gateway** | Runs sandboxes, enforces policy, manages providers | `helm install openshell oci://ghcr.io/nvidia/openshell/helm-chart` (cluster) or build from source (local podman) |
+| **`openshell` CLI** | CLI interface to the gateway | `brew install openshell` or build from [NVIDIA/OpenShell](https://github.com/NVIDIA/OpenShell) |
+| **Go 1.24+** | Build `ac` binary | `brew install go` |
+| **Credentials** (at least one) | Authenticate agents to inference and tool providers | See below |
+
+**Credential sources** (detected automatically by `ac init`):
+
+| Credential | What it enables | How to set up |
+|---|---|---|
+| Google Cloud ADC | Claude Code via Vertex, ADK agents | `gcloud auth application-default login` |
+| GitHub token | GitHub MCP access (PRs, repos, issues) | `gh auth login` |
+| Anthropic API key | Claude Code via direct API | `export ANTHROPIC_API_KEY=sk-...` |
+
+**Verify prerequisites:**
+
+```bash
+openshell status          # should show Connected
+go version                # should show 1.24+
+gcloud auth list          # should show an active account (for Vertex)
+gh auth status            # should show logged in (for GitHub)
+```
 
 ## Quick Start
 
 ```bash
 make build
 
-# Initialize: creates config + auto-detects local credentials (Vertex, GitHub, Anthropic)
+# Initialize: creates config + auto-detects local credentials
 ac init
 #   Google Cloud ADC found       created vertex provider
 #   GitHub token found           created github provider
 
-# Validate your setup
+# Validate everything is wired up
 ac doctor
 
-# Compose an agent inline: runtime + inference + MCP servers + skills + prompt
+# Compose an agent inline: runtime + MCP servers + skills + prompt
 ac run --runtime claude-code-vertex \
        --mcp github \
        --skills security-review \
@@ -31,8 +59,8 @@ ac run security-reviewer --workspace ./my-project
 # Override the model for a single run
 ac run security-reviewer --model llama-3.3-70b
 
-# See exactly what was resolved (providers, env vars, assembled prompt, skill mounts)
-ac get security-reviewer --json
+# See what was resolved (providers, env vars, assembled prompt, skill mounts)
+ac get security-reviewer
 
 # Lifecycle
 ac list
@@ -65,6 +93,16 @@ Then calls `openshell sandbox create` with the right flags. The developer types 
 
 See [docs/composition.md](docs/composition.md) for the full walkthrough.
 
+## Why Go
+
+agent-compose is a Go library, not just a CLI tool. This matters for three reasons:
+
+1. **Backend embedding.** The `pkg/compose` package can be imported into dashboard backends, operator controllers, or API servers. A console UI calls `engine.Resolve()` to show the user what an agent will look like before creating it, then `engine.Run()` to launch it. No shell subprocess needed.
+
+2. **Cloud-native ecosystem.** Go is the lingua franca of the cloud-native stack. agent-compose integrates naturally with the tools teams already use. When OpenShell ships a Go SDK, the executor swaps from shelling out (`CLIExecutor`) to native Go calls (`SDKExecutor`) with zero API changes. The `Executor` interface is the seam.
+
+3. **Single binary.** `ac` compiles to one binary with no runtime dependencies. Deploy it alongside `openshell` on any platform.
+
 ## Agent Types
 
 | `runtime.kind` | Declaration | Examples |
@@ -93,12 +131,12 @@ ac doctor                        Validate config and check environment readiness
 
 | Doc | What it covers |
 |---|---|
-| [Composition Guide](docs/composition.md) | Full walkthrough: config, skills, MCP, named agents, resolution pipeline |
+| [Composition Guide](docs/composition.md) | Config, skills, MCP, named agents, resolution pipeline |
 | [Running Agents](docs/running-agents.md) | Step-by-step examples: Claude Code, custom agents, ADK |
-| [Architecture](docs/architecture.md) | Engine design, resolver interfaces, executor, Go SDK |
-| [Personas and GitOps](docs/personas.md) | Developer, platform engineer, team lead workflows |
-| [Test Results](docs/test-results.md) | End-to-end test evidence against live OpenShell gateways |
-| [Upstream Issues](docs/upstream-issues/) | Validated OpenShell gaps with evidence and workarounds |
+| [Architecture](docs/architecture.md) | Engine design, resolvers, executor, Go SDK |
+| [Personas](docs/personas.md) | Who sets up what, prerequisites, handoff flow |
+| [Test Results](docs/test-results.md) | Live test evidence against real OpenShell gateways |
+| [Upstream Issues](docs/upstream-issues/) | Validated OpenShell gaps with workarounds |
 
 ## Built-in Runtimes
 
