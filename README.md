@@ -1,10 +1,24 @@
 # agent-compose
 
-Agent composition engine for OpenShell. Declare what an agent needs (runtime, model, MCP servers, skills, prompt); the engine resolves it into a running, governed sandbox. One command replaces 8 manual steps.
-
-Written in Go as a library-first design (`pkg/compose`). The CLI (`ac`) is a thin wrapper. The same engine can be embedded into backend-for-frontend services, operator controllers, or dashboard APIs. When OpenShell ships a Go SDK, the executor swaps from CLI shelling to native SDK calls with zero API changes.
-
 ![agent-compose](docs/logo.png)
+
+Every AI agent needs the same things: a model, tools, credentials, a prompt, and a safe place to run. Today you wire those by hand: 8 steps, 3 configuration systems, different env var names per framework. Get one step wrong and the agent boots but can't do its job.
+
+agent-compose fixes this. Declare what the agent needs; one command resolves it into a running, governed sandbox.
+
+## Use Cases
+
+**A developer wants to run a code reviewer.** They type `ac run code-reviewer --workspace ./repo`. The engine picks the right image, attaches the inference provider, connects the GitHub MCP server, injects the security review skill prompt, and creates a sandboxed environment. The developer doesn't configure any of this.
+
+**A platform engineer supports 5 teams using different agents.** They write one `config.yaml` defining runtimes (Claude Code, Codex, ADK), inference endpoints (Vertex, MaaS, local vLLM), and MCP servers (GitHub, Jira, Slack). Each team defines their own agents by picking from this menu. The platform engineer runs `ac init` once; providers are auto-created from local credentials.
+
+**A team lead defines a security reviewer agent.** They compose it from a runtime (claude-code-vertex), MCP servers (github, jira), and a skill (security-review with OWASP references). Developers run it with one command. The skill's prompt, tool dependencies, and reference files are resolved and injected automatically.
+
+**A CI pipeline runs headless agents.** `ac run test-runner --workspace ./repo --dry-run` produces the exact `openshell sandbox create` command with all flags. In production, `ac run test-runner` creates the sandbox, executes the agent, and returns the exit code.
+
+**A dashboard backend resolves agent specs.** The Go library (`pkg/compose`) is imported directly. `engine.Resolve(ctx, "code-reviewer")` returns the full `ResolvedSpec` (image, env vars, providers, prompt, sandbox opts) as a struct. The dashboard previews the composition before the user clicks "Run."
+
+Written in Go as a library-first design. The CLI (`ac`) is a thin wrapper. The same engine embeds into backend services, dashboard APIs, or platform controllers. When OpenShell ships a Go SDK, the executor swaps from CLI to native calls with zero API changes.
 
 ## Prerequisites
 
