@@ -777,18 +777,78 @@ def add(a, b):
 
 **What was configured:** `OPENAI_BASE_URL` and `OPENAI_MODEL` env vars, policy update to allow `qwen3-14b-user-nxu.apps.ocp.cloud.rhai-tmm.dev:443` for `/usr/bin/curl`.
 
+### Skills: prompt assembly and reference file mounting
+
+Created a `code-style` skill with a SKILL.md and a reference file. Verified the resolver assembles the combined prompt and the files are accessible inside the sandbox.
+
+```
+$ ac get style-checker --skills-dir /tmp/ac-test-skills
+
+{
+  "prompt": "Check this code for style violations.\n\n# Code Style Review\n\n
+    When reviewing code, enforce these rules:\n1. No functions longer than 50 lines...",
+  "skill_mounts": [
+    {"Source": "/tmp/ac-test-skills/code-style/references/style-guide.md",
+     "Target": "/workspace/skills/code-style/"}
+  ]
+}
+```
+
+```
+$ openshell sandbox create --name skills-test \
+    --upload "/tmp/test-prompt.md:/sandbox/prompt.md" \
+    --upload ".../style-guide.md:/sandbox/skills/code-style/style-guide.md" \
+    --no-tty \
+    -- bash -c "cat /sandbox/prompt.md && cat /sandbox/skills/code-style/style-guide.md"
+
+Check this code for style violations.
+# Code Style Review
+When reviewing code, enforce these rules:
+1. No functions longer than 50 lines
+...
+# Style Guide Reference
+This is a reference file mounted from the skill.
+```
+
+**What was verified:** Skill prompt appended to agent prompt, skill tool/MCP dependencies merged (deduped), reference files uploaded via `--upload` and readable inside the sandbox.
+
+### MCP: GitHub provider with egress policy
+
+Created a `github` provider from a local GitHub token. Verified the sandbox can access GitHub (via allowed binaries) and blocks everything else.
+
+```
+$ openshell provider create --type github --name github --credential "api_token=$(gh auth token)"
+Created provider github
+
+$ openshell sandbox create --name mcp-test --provider github --no-tty
+
+# git works (binary allowed by github profile)
+$ openshell sandbox exec --name mcp-test -- git ls-remote https://github.com/NVIDIA/OpenShell.git HEAD
+94cdd697c55aedb571f177ec13cfa54a8e213919  HEAD
+
+# curl blocked (binary not in github profile's allowed list)
+$ openshell sandbox exec --name mcp-test -- curl -sv https://api.github.com/user
+CONNECT tunnel failed, response 403
+
+# unrelated endpoints blocked
+$ openshell sandbox exec --name mcp-test -- curl -sv https://example.com
+CONNECT tunnel failed, response 403
+```
+
+**What was verified:** Provider attaches credentials and egress policy. Only binaries declared in the provider profile (`/usr/bin/git`, `/usr/bin/gh`) can access GitHub endpoints. Other binaries and other endpoints are blocked. The `gh` CLI requires `GH_TOKEN` as an env var (not just proxy-level injection), which is a known OpenShell limitation for CLI tools that check auth locally before making network requests.
+
 ### CLI: dry-run, overrides, composition
 
 ```
-$ ac run --runtime claude-code --prompt "test" --dry-run
+$ ac run --runtime claude-code --prompt "Say hello" --dry-run
 
 openshell sandbox create --name inline-1234 \
-  --from ghcr.io/anthropics/claude-code:latest \
+  --from ghcr.io/nvidia/openshell-community/sandboxes/base:latest \
   --auto-providers --no-tty \
   --provider claude-code \
   --scope session --mode all --ttl 30m \
   --label agentctl.io/agent=inline-1234
-openshell sandbox exec --name inline-1234 -- claude --prompt-file /workspace/prompt.md
+openshell sandbox exec --name inline-1234 -- claude -p Say hello --dangerously-skip-permissions
 ```
 
 ```
@@ -797,12 +857,6 @@ $ ac run code-reviewer --inference local-vllm --model custom-7b --dry-run
 openshell sandbox create ... --provider claude-code --provider vllm-local \
   --env ANTHROPIC_BASE_URL=https://vllm.internal:8000/v1 \
   --env ANTHROPIC_DEFAULT_SONNET_MODEL=custom-7b ...
-```
-
-```
-$ ac run --runtime claude-code --mcp github --skills security-review --prompt "Check auth" --dry-run
-
-openshell sandbox create ... --provider claude-code --provider maas-anthropic --provider github-pat ...
 ```
 
 ### Lifecycle: list, stop, doctor
@@ -834,7 +888,7 @@ $ go test ./examples/ -v
 === RUN   TestSDK_ResolveAgent
 {
   "runtime_kind": "harness",
-  "image": "ghcr.io/anthropics/claude-code:latest",
+  "image": "ghcr.io/nvidia/openshell-community/sandboxes/base:latest",
   "providers": ["claude-code", "maas-anthropic", "github-pat"],
   "env": {
     "ANTHROPIC_BASE_URL": "https://maas.apps.cluster.com/v1",
@@ -855,6 +909,8 @@ $ go test ./examples/ -v
 - OpenShell's `google-vertex-ai` provider profile is missing `oauth2.googleapis.com` in its endpoints, requiring a manual `openshell policy update` for Vertex auth token refresh
 - Claude Code's Vertex integration uses file-based ADC (`GOOGLE_APPLICATION_CREDENTIALS`), not OpenShell's metadata emulator. Workaround: `--upload` the ADC file. Proper fix is upstream (metadata emulator support for Claude Code's auth path)
 - OpenShell's `--auto-providers` doesn't support `--from-existing` discovery for `google-vertex-ai`; use `openshell provider create --from-gcloud-adc` explicitly
+- CLI tools that check auth locally before making requests (e.g., `gh` requires `GH_TOKEN` env var) don't work with OpenShell's proxy-level credential injection. The proxy injects auth headers at the network layer, but the CLI refuses to make the request without a local token. Workaround: pass the token as `--env GH_TOKEN=...` in addition to the provider
+- The sandbox's writable directory is `/sandbox` (not `/workspace`). Skill reference mounts and prompt files should target `/sandbox/` paths
 
 ## Development
 
