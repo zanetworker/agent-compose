@@ -23,33 +23,36 @@ models, MCP, skills        runtime + inference + mcp      ResolvedSpec         s
 # Build
 make build
 
-# Initialize config
+# Initialize: creates config + auto-detects local credentials
 ac init
-# Edit ~/.ac/config.yaml with your inference providers and MCP servers
+
+# Output:
+#   Created ~/.ac/config.yaml
+#   Detecting local credentials...
+#     Google Cloud ADC found       created vertex provider
+#     GitHub token found           created github provider
+#   Created 2 provider(s).
 
 # Validate your setup
 ac doctor
 
-# Run an agent with inline flags (zero config needed)
-ac run --runtime claude-code --inference maas --prompt "Review this code" --dry-run
+# Run an agent with inline flags
+ac run --runtime claude-code-vertex --prompt "Review this code" --dry-run
 
 # Run a named agent from config
-ac run code-reviewer --workspace ./my-project
+ac run security-reviewer --workspace ./my-project
 
 # Override inference or model at run time
-ac run code-reviewer --inference local-vllm --model llama-3.3-70b
+ac run security-reviewer --model llama-3.3-70b
 
 # Show fully resolved spec as JSON
-ac get code-reviewer --json
+ac get security-reviewer --json
 
 # List running agents
 ac list
 
 # Stop an agent
-ac stop code-reviewer
-
-# Sync provider profiles to OpenShell gateway
-ac apply --sync-profiles
+ac stop security-reviewer
 ```
 
 ## Running Agents
@@ -904,13 +907,31 @@ $ go test ./examples/ -v
 --- PASS: TestSDK_InlineAgent
 ```
 
-### Known upstream gaps
+### Known Upstream Gaps
 
-- OpenShell's `google-vertex-ai` provider profile is missing `oauth2.googleapis.com` in its endpoints, requiring a manual `openshell policy update` for Vertex auth token refresh
-- Claude Code's Vertex integration uses file-based ADC (`GOOGLE_APPLICATION_CREDENTIALS`), not OpenShell's metadata emulator. Workaround: `--upload` the ADC file. Proper fix is upstream (metadata emulator support for Claude Code's auth path)
-- OpenShell's `--auto-providers` doesn't support `--from-existing` discovery for `google-vertex-ai`; use `openshell provider create --from-gcloud-adc` explicitly
-- CLI tools that check auth locally before making requests (e.g., `gh` requires `GH_TOKEN` env var) don't work with OpenShell's proxy-level credential injection. The proxy injects auth headers at the network layer, but the CLI refuses to make the request without a local token. Workaround: pass the token as `--env GH_TOKEN=...` in addition to the provider
-- The sandbox's writable directory is `/sandbox` (not `/workspace`). Skill reference mounts and prompt files should target `/sandbox/` paths
+Two issues validated with evidence (detailed write-ups in `docs/upstream-issues/`):
+
+**1. GCE Metadata Emulator Not Running** ([001](docs/upstream-issues/001-metadata-emulator-not-running.md))
+
+The `google-vertex-ai` provider attaches credentials but the GCE metadata emulator doesn't start. `GCE_METADATA_HOST` is not set. GCP SDKs (`google.auth.default()`) can't discover credentials. The emulator code exists in upstream OpenShell but isn't in the current build.
+
+Impact: all GCP SDK consumers (ADK, Claude Code Vertex, LangGraph with Vertex) can't get credentials inside sandboxes.
+
+Workaround: `--upload` the ADC file and set `GOOGLE_APPLICATION_CREDENTIALS`.
+
+Also: the `google-vertex-ai` profile is missing `oauth2.googleapis.com` in its endpoints, requiring a manual `openshell policy update` for token refresh.
+
+**2. Provider env_vars Not Injected as Env Vars** ([002](docs/upstream-issues/002-provider-env-vars-not-injected.md))
+
+Provider profiles declare `env_vars: [GITHUB_TOKEN, GH_TOKEN]` but credentials are injected under the credential's internal name (`api_token`), not the declared env var names. CLI tools that check auth locally (`gh`, `aws`, `gcloud`) fail.
+
+Impact: any CLI tool that validates auth before making network requests.
+
+Workaround: pass `--env GH_TOKEN=...` manually alongside the provider.
+
+**Other notes:**
+- `--auto-providers` doesn't support `--from-existing` for `google-vertex-ai`; use `openshell provider create --from-gcloud-adc` (handled by `ac init`)
+- The sandbox's writable directory is `/sandbox` (not `/workspace`). Skill reference mounts should target `/sandbox/` paths
 
 ## Development
 
