@@ -8,11 +8,11 @@ agent-compose fixes this. Declare what the agent needs; one command resolves it 
 
 ## Use Cases
 
-**A developer wants to run a code reviewer.** They type `ac run code-reviewer --workspace ./repo`. The engine picks the right image, attaches the inference provider, connects the GitHub MCP server, injects the security review skill prompt, and creates a sandboxed environment. The developer doesn't configure any of this.
+**A developer wants to run a code reviewer.** They type `ac run code-reviewer --workspace ./repo`. The `--workspace` flag uploads the local directory into the sandbox so the agent can read and modify the code. The engine picks the right image, attaches the inference provider, connects the GitHub MCP server, injects the security review skill prompt, and creates the sandboxed environment. The developer doesn't configure any of this.
 
 **A platform engineer supports 5 teams using different agents.** They write one `config.yaml` defining runtimes (Claude Code, Codex, ADK), inference endpoints (Vertex, MaaS, local vLLM), and MCP servers (GitHub, Jira, Slack). Each team defines their own agents by picking from this menu. The platform engineer runs `ac init` once; providers are auto-created from local credentials.
 
-**A team lead defines a security reviewer agent.** They compose it from a runtime (claude-code-vertex), MCP servers (github, jira), and a skill (security-review with OWASP references). Developers run it with one command. The skill's prompt, tool dependencies, and reference files are resolved and injected automatically.
+**A team lead standardizes how the team reviews code.** Instead of each developer configuring their own agent, the team lead defines `security-reviewer` in config: Claude Code as the runtime, GitHub and Jira as MCP servers, and a `security-review` skill (OWASP checklist + prompt instructions). Developers run `ac run security-reviewer --workspace ./repo` and get the same agent with the same tools and standards every time. Changes to the skill or prompt are reviewed in PRs like code.
 
 **A CI pipeline runs headless agents.** `ac run test-runner --workspace ./repo --dry-run` produces the exact `openshell sandbox create` command with all flags. In production, `ac run test-runner` creates the sandbox, executes the agent, and returns the exit code.
 
