@@ -376,18 +376,72 @@ The developer typed one command. The engine resolved 4 providers, 2 MCP servers,
 $ ac run --runtime claude-code --prompt "test" --dry-run
 
 openshell sandbox create --name inline-1234 \
-  --image ghcr.io/anthropics/claude-code:latest \
-  --provider maas-anthropic \
-  --env ANTHROPIC_BASE_URL=https://maas.apps.cluster.com/v1 \
+  --from ghcr.io/anthropics/claude-code:latest \
+  --auto-providers --no-tty \
+  --provider claude-code \
   --env ANTHROPIC_DEFAULT_SONNET_MODEL=granite-3.3-8b-instruct \
-  --policy restricted \
   --scope session --mode all --ttl 30m \
   --label agentctl.io/agent=inline-1234
 
-openshell sandbox exec inline-1234 -- claude --prompt-file /workspace/prompt.md
+openshell sandbox exec --name inline-1234 -- claude --prompt-file /workspace/prompt.md
 ```
 
-All 8 manual steps collapsed into one command. No new OpenShell primitives.
+Credentials are handled by the `claude-code` provider (OpenShell injects `ANTHROPIC_API_KEY`). Only non-credential env vars (model name) go through `--env`. All 8 manual steps collapsed into one command.
+
+## Go SDK
+
+The CLI is a thin wrapper. Everything is available programmatically via `pkg/compose`:
+
+```go
+import "github.com/zanetworker/agent-compose/pkg/compose"
+
+// Build the engine from config
+engine := compose.New(
+    compose.WithConfig(cfg),
+    compose.WithExecutor(compose.NewCLIExecutor("openshell")),
+    compose.WithSkillsDir("~/.ac/skills"),
+)
+
+// Resolve only (for harnesses/frameworks that create their own sandboxes)
+spec, err := engine.Resolve(ctx, "code-reviewer")
+// spec.Image, spec.Env, spec.Providers, spec.Egress, spec.Prompt, spec.Sandbox, ...
+
+// Resolve + create + run (P1 pattern)
+run, err := engine.Run(ctx, "code-reviewer", compose.RunOpts{
+    Workspace: "./repo",
+})
+
+// Override inference and model per run
+run, err = engine.Run(ctx, "code-reviewer", compose.RunOpts{
+    Inference: "local-vllm",
+    Model:     "llama-3.3-70b",
+    Prompt:    "Focus on auth bypass",
+})
+
+// Compose an inline agent (no config entry needed)
+run, err = engine.Run(ctx, "", compose.RunOpts{
+    Agent: &compose.Agent{
+        Runtime: "claude-code",
+        MCP:     []string{"github"},
+        Prompt:  "Review this code",
+    },
+    Inference: "maas",
+})
+
+// Lifecycle
+statuses, _ := engine.List(ctx)
+engine.Stop(ctx, "code-reviewer-1234")
+logs, _ := engine.Logs(ctx, "code-reviewer-1234")
+
+// Introspection
+spec, _ = engine.Get(ctx, "code-reviewer")   // resolved spec as JSON
+results := compose.Doctor(cfg, skillsDir, "openshell")
+
+// Profile sync
+ids, _ := engine.SyncProfiles(ctx)
+```
+
+SDK tests are in `examples/sdk_test.go` and cover: resolving a named agent, overriding inference/model, and composing inline agents. Run with `go test ./examples/ -v`.
 
 ## Config
 
@@ -549,25 +603,7 @@ The core is a Go library (`pkg/compose/`). CLI is a thin cobra wrapper.
 
 **No local run database.** OpenShell sandbox labels (`agentctl.io/agent`) are the source of truth for run state. `list`/`stop`/`logs` query the executor, never a local store.
 
-```go
-engine := compose.New(
-    compose.WithConfig(cfg),
-    compose.WithExecutor(compose.NewCLIExecutor("openshell")),
-    compose.WithSkillsDir("~/.ac/skills"),
-)
-
-// Resolve only (for harnesses that create their own sandboxes)
-spec, _ := engine.Resolve(ctx, "code-reviewer")
-
-// Or resolve + create + run
-run, _ := engine.Run(ctx, "code-reviewer", compose.RunOpts{Workspace: "./repo"})
-
-// Override inference and model per run
-run, _ = engine.Run(ctx, "code-reviewer", compose.RunOpts{
-    Inference: "local-vllm",
-    Model:     "llama-3.3-70b",
-})
-```
+See the [Go SDK](#go-sdk) section for programmatic usage.
 
 ## Sandbox Lifecycle
 
@@ -701,23 +737,124 @@ GitOps is essential here: agent definitions are reviewed in PRs, rollback is `gi
 | Platform Engineer | Shared `config.yaml` in a repo | Yes, for multi-env | Runtimes, inference, MCP, policies |
 | Team Lead | Separate agent files in a team repo | Yes, always | Agent definitions, skills, team standards |
 
-## Current Status
+## Tested End-to-End
 
-End-to-end tested against a live OpenShell gateway (podman driver, local):
+All tests run against a live OpenShell gateway (podman driver, macOS, July 2026).
 
-| Test | Result |
-|---|---|
-| Claude Code via Vertex AI in sandbox | "Hello! Let's code." |
-| Python agent calling qwen3-14b (GPU cluster) in sandbox | Model responded with code |
-| `ac doctor` (config + live gateway checks) | Working |
-| `ac apply --sync-profiles` (skips built-in profiles) | Working |
-| `ac list` / `ac stop` (sandbox lifecycle) | Working |
-| `ac get --json` (resolved spec) | Working |
-| `--inference` / `--model` overrides | Working |
+### Harness: Claude Code via Vertex AI
 
-**Known upstream gaps:**
-- OpenShell's `google-vertex-ai` provider profile is missing `oauth2.googleapis.com` in its endpoints, requiring a manual policy update for Vertex auth token refresh
+OpenShell sandbox with Landlock, network proxy, egress policy. Claude Code called Vertex AI and responded.
+
+```
+$ openshell sandbox exec --name claude-v2 --no-tty -- \
+    claude -p "Say hello in exactly 3 words" --max-turns 1 --dangerously-skip-permissions
+
+Hello! Let's code.
+```
+
+```
+$ openshell sandbox exec --name claude-v2 --no-tty -- \
+    claude -p "What is 2+2? Just the number" --max-turns 1 --dangerously-skip-permissions
+
+4
+```
+
+**What was configured:** `google-vertex-ai` provider (created via `--from-gcloud-adc`), Vertex env vars (`CLAUDE_CODE_USE_VERTEX`, `CLOUD_ML_REGION`, `ANTHROPIC_VERTEX_PROJECT_ID`), ADC file uploaded, and a policy update to allow `oauth2.googleapis.com` + `us-east5-aiplatform.googleapis.com` for `/usr/local/bin/claude`.
+
+### Framework: Python agent calling GPU cluster (qwen3-14b)
+
+Python script using `urllib` inside a sandbox, calling a vLLM model on a remote GPU cluster.
+
+```
+$ openshell sandbox exec --name adk-test --no-tty -- \
+    bash -c 'curl -sk $OPENAI_BASE_URL/chat/completions \
+    -H "Content-Type: application/json" \
+    -d "{...qwen3-14b...}" | python3 -c "..."'
+
+def add(a, b):
+    return a + b
+```
+
+**What was configured:** `OPENAI_BASE_URL` and `OPENAI_MODEL` env vars, policy update to allow `qwen3-14b-user-nxu.apps.ocp.cloud.rhai-tmm.dev:443` for `/usr/bin/curl`.
+
+### CLI: dry-run, overrides, composition
+
+```
+$ ac run --runtime claude-code --prompt "test" --dry-run
+
+openshell sandbox create --name inline-1234 \
+  --from ghcr.io/anthropics/claude-code:latest \
+  --auto-providers --no-tty \
+  --provider claude-code \
+  --scope session --mode all --ttl 30m \
+  --label agentctl.io/agent=inline-1234
+openshell sandbox exec --name inline-1234 -- claude --prompt-file /workspace/prompt.md
+```
+
+```
+$ ac run code-reviewer --inference local-vllm --model custom-7b --dry-run
+
+openshell sandbox create ... --provider claude-code --provider vllm-local \
+  --env ANTHROPIC_BASE_URL=https://vllm.internal:8000/v1 \
+  --env ANTHROPIC_DEFAULT_SONNET_MODEL=custom-7b ...
+```
+
+```
+$ ac run --runtime claude-code --mcp github --skills security-review --prompt "Check auth" --dry-run
+
+openshell sandbox create ... --provider claude-code --provider maas-anthropic --provider github-pat ...
+```
+
+### Lifecycle: list, stop, doctor
+
+```
+$ ac list
+NAME              SANDBOX           STATUS   AGE
+hello-1783881595  hello-1783881595  running  0s
+
+$ ac stop hello-1783881595
+Agent hello-1783881595 stopped
+
+$ ac doctor
+Runtimes
+  claude-code          image specified                ok
+  claude-code          entrypoint specified           ok
+  ...
+OpenShell
+  gateway              reachable                      ok
+  maas                 profile synced                 FAIL (run: ac apply --sync-profiles)
+  github               profile synced                 ok
+```
+
+### SDK: programmatic usage
+
+```
+$ go test ./examples/ -v
+
+=== RUN   TestSDK_ResolveAgent
+{
+  "runtime_kind": "harness",
+  "image": "ghcr.io/anthropics/claude-code:latest",
+  "providers": ["claude-code", "maas-anthropic", "github-pat"],
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://maas.apps.cluster.com/v1",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "granite-3.3-8b-instruct"
+  },
+  "sandbox": {"scope": "session", "mode": "all", "ttl": "30m"},
+  ...
+}
+--- PASS: TestSDK_ResolveAgent
+=== RUN   TestSDK_ResolveWithOverrides
+--- PASS: TestSDK_ResolveWithOverrides
+=== RUN   TestSDK_InlineAgent
+--- PASS: TestSDK_InlineAgent
+```
+
+### Known upstream gaps
+
+- OpenShell's `google-vertex-ai` provider profile is missing `oauth2.googleapis.com` in its endpoints, requiring a manual `openshell policy update` for Vertex auth token refresh
 - Claude Code's Vertex integration uses file-based ADC (`GOOGLE_APPLICATION_CREDENTIALS`), not OpenShell's metadata emulator. Workaround: `--upload` the ADC file. Proper fix is upstream (metadata emulator support for Claude Code's auth path)
+- OpenShell's `--auto-providers` doesn't support `--from-existing` discovery for `google-vertex-ai`; use `openshell provider create --from-gcloud-adc` explicitly
 
 ## Development
 
