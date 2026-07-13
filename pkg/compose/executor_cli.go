@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -41,6 +42,9 @@ func (e *CLIExecutor) CreateSandbox(ctx context.Context, name string, spec *Reso
 	for _, m := range spec.SkillMounts {
 		args = append(args, "--upload", fmt.Sprintf("%s:%s", m.Source, m.Target))
 	}
+	if spec.Workspace != "" {
+		args = append(args, "--upload", spec.Workspace)
+	}
 	labelKeys := make([]string, 0, len(spec.Labels))
 	for k := range spec.Labels {
 		labelKeys = append(labelKeys, k)
@@ -57,6 +61,14 @@ func (e *CLIExecutor) ExecInSandbox(ctx context.Context, name string, cmd []stri
 	return e.run(ctx, args...)
 }
 
+func (e *CLIExecutor) ConnectSandbox(ctx context.Context, name string) error {
+	cmd := exec.CommandContext(ctx, e.binary, "sandbox", "connect", name)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 func (e *CLIExecutor) DeleteSandbox(ctx context.Context, name string) error {
 	return e.run(ctx, "sandbox", "delete", name)
 }
@@ -70,7 +82,18 @@ func (e *CLIExecutor) SandboxLogs(ctx context.Context, name string) (io.ReadClos
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("sandbox logs start: %w", err)
 	}
-	return stdout, nil
+	return &waitCloser{ReadCloser: stdout, cmd: cmd}, nil
+}
+
+type waitCloser struct {
+	io.ReadCloser
+	cmd *exec.Cmd
+}
+
+func (w *waitCloser) Close() error {
+	err := w.ReadCloser.Close()
+	w.cmd.Wait()
+	return err
 }
 
 func (e *CLIExecutor) SandboxStatus(ctx context.Context, name string) (SandboxState, error) {

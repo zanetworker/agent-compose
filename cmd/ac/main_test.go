@@ -21,7 +21,7 @@ func TestBuildEngine(t *testing.T) {
 	t.Run("with valid config", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		cfgPath := filepath.Join(tmpDir, "config.yaml")
-		err := os.WriteFile(cfgPath, []byte("harnesses: {}\ninference: {}\nmcp: {}\ndefaults:\n  inference: \"\"\n  policy: restricted\n  sandbox:\n    scope: session\n    mode: all\nagents: {}"), 0644)
+		err := os.WriteFile(cfgPath, []byte("runtimes: {}\ninference: {}\nmcp: {}\ndefaults:\n  inference: \"\"\n  policy: restricted\n  sandbox:\n    scope: session\n    mode: all\nagents: {}"), 0644)
 		if err != nil {
 			t.Fatal(err)
 		}

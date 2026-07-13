@@ -4,15 +4,18 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"time"
 )
 
 type RunOpts struct {
-	Prompt    string
-	Workspace string
-	Inference string // override inference provider for this run
-	Model     string // override model for this run
-	Agent     *Agent // inline agent (when name is empty)
+	Prompt          string
+	Workspace       string
+	Inference       string // override inference provider for this run
+	Model           string // override model for this run
+	SkipPermissions bool   // if true, append --dangerously-skip-permissions for harness agents
+	Interactive     bool   // if true, use sandbox connect instead of exec
+	Agent           *Agent // inline agent (when name is empty)
 }
 
 type Engine struct {
@@ -107,6 +110,26 @@ func (e *Engine) Run(ctx context.Context, name string, opts RunOpts) (*Run, erro
 		return nil, fmt.Errorf("resolving agent %q: %w", name, err)
 	}
 
+	// For non-harness agents, write prompt to a temp file for upload
+	var promptTmpFile string
+	if spec.Prompt != "" && spec.RuntimeKind != "harness" {
+		tmpfile, err := os.CreateTemp("", "ac-prompt-*.md")
+		if err != nil {
+			return nil, fmt.Errorf("creating prompt temp file: %w", err)
+		}
+		promptTmpFile = tmpfile.Name()
+		defer os.Remove(promptTmpFile)
+		if _, err := tmpfile.WriteString(spec.Prompt); err != nil {
+			tmpfile.Close()
+			return nil, fmt.Errorf("writing prompt file: %w", err)
+		}
+		tmpfile.Close()
+		spec.SkillMounts = append(spec.SkillMounts, Mount{
+			Source: promptTmpFile,
+			Target: "/sandbox/prompt.md",
+		})
+	}
+
 	sandboxName := fmt.Sprintf("%s-%d", name, time.Now().Unix())
 
 	// Ensure labels map exists and add agent label for tracking
@@ -119,14 +142,23 @@ func (e *Engine) Run(ctx context.Context, name string, opts RunOpts) (*Run, erro
 		return nil, fmt.Errorf("creating sandbox: %w", err)
 	}
 
-	cmd := spec.Entrypoint
-	if spec.Prompt != "" && spec.RuntimeKind == "harness" {
-		cmd = append(append([]string{}, cmd...), "-p", spec.Prompt, "--dangerously-skip-permissions")
-	}
+	if opts.Interactive {
+		if err := e.executor.ConnectSandbox(ctx, sandboxName); err != nil {
+			return nil, fmt.Errorf("connecting to sandbox: %w", err)
+		}
+	} else {
+		cmd := spec.Entrypoint
+		if spec.Prompt != "" && spec.RuntimeKind == "harness" {
+			cmd = append(append([]string{}, cmd...), "-p", spec.Prompt)
+			if opts.SkipPermissions {
+				cmd = append(cmd, "--dangerously-skip-permissions")
+			}
+		}
 
-	if err := e.executor.ExecInSandbox(ctx, sandboxName, cmd); err != nil {
-		e.executor.DeleteSandbox(ctx, sandboxName)
-		return nil, fmt.Errorf("executing entrypoint: %w", err)
+		if err := e.executor.ExecInSandbox(ctx, sandboxName, cmd); err != nil {
+			e.executor.DeleteSandbox(ctx, sandboxName)
+			return nil, fmt.Errorf("executing entrypoint: %w", err)
+		}
 	}
 
 	run := &Run{

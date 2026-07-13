@@ -9,13 +9,15 @@ import (
 
 func runCmd() *cobra.Command {
 	var (
-		prompt    string
-		workspace string
-		runtime   string
-		inference string
-		model     string
-		mcp       []string
-		skills    []string
+		prompt          string
+		workspace       string
+		runtime         string
+		inference       string
+		model           string
+		skipPermissions bool
+		interactive     bool
+		mcp             []string
+		skills          []string
 	)
 
 	cmd := &cobra.Command{
@@ -29,10 +31,12 @@ func runCmd() *cobra.Command {
 			}
 
 			opts := compose.RunOpts{
-				Prompt:    prompt,
-				Workspace: workspace,
-				Inference: inference,
-				Model:     model,
+				Prompt:          prompt,
+				Workspace:       workspace,
+				Inference:       inference,
+				Model:           model,
+				SkipPermissions: skipPermissions,
+				Interactive:     interactive,
 			}
 
 			if len(args) == 0 {
@@ -71,6 +75,8 @@ func runCmd() *cobra.Command {
 	cmd.Flags().StringVar(&runtime, "runtime", "", "runtime profile (for inline agents)")
 	cmd.Flags().StringVar(&inference, "inference", "", "override inference provider")
 	cmd.Flags().StringVar(&model, "model", "", "override model")
+	cmd.Flags().BoolVar(&skipPermissions, "skip-permissions", false, "skip agent permission prompts (use with caution)")
+	cmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "attach an interactive terminal to the sandbox")
 	cmd.Flags().StringSliceVar(&mcp, "mcp", nil, "MCP servers")
 	cmd.Flags().StringSliceVar(&skills, "skills", nil, "skills")
 

@@ -24,7 +24,7 @@ func TestIntegration_FullResolveAndDryRun(t *testing.T) {
 	}
 	cfg.Defaults.Inference = "test-maas"
 	cfg.Agents["test-agent"] = Agent{
-		Harness: "claude-code",
+		Runtime: "claude-code",
 		Prompt:  "Test prompt.",
 		MCP:     []string{"test-github"},
 	}
@@ -57,8 +57,8 @@ func TestIntegration_FullResolveAndDryRun(t *testing.T) {
 	if !strings.Contains(createLine, "openshell sandbox create") {
 		t.Errorf("create missing 'openshell sandbox create': %s", createLine)
 	}
-	if !strings.Contains(createLine, "--image ghcr.io/anthropics/claude-code:latest") {
-		t.Errorf("create missing --image: %s", createLine)
+	if !strings.Contains(createLine, "--from ghcr.io/nvidia/openshell-community/sandboxes/base:latest") {
+		t.Errorf("create missing --from: %s", createLine)
 	}
 	if !strings.Contains(createLine, "--provider test-provider") {
 		t.Errorf("create missing inference provider: %s", createLine)

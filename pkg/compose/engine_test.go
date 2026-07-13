@@ -238,6 +238,13 @@ func (m *mockExecutorWithList) ExecInSandbox(_ context.Context, name string, cmd
 	return nil
 }
 
+func (m *mockExecutorWithList) ConnectSandbox(_ context.Context, name string) error {
+	if m.buf != nil {
+		fmt.Fprintf(m.buf, "connect to %s\n", name)
+	}
+	return nil
+}
+
 func (m *mockExecutorWithList) DeleteSandbox(_ context.Context, name string) error {
 	for i, s := range m.sandboxes {
 		if s == name {
@@ -293,5 +300,30 @@ func TestEngine_List_FromExecutor(t *testing.T) {
 	}
 	if statuses[0].Sandbox != run.Sandbox {
 		t.Errorf("expected sandbox %q, got %q", run.Sandbox, statuses[0].Sandbox)
+	}
+}
+
+func TestEngine_Run_FrameworkAgent_PromptUploaded(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Agents["fw-agent"] = Agent{
+		Runtime: "adk",
+		Prompt:  "You are a helpful assistant",
+	}
+	cfg.Defaults.Inference = ""
+
+	var buf bytes.Buffer
+	engine := New(
+		WithConfig(cfg),
+		WithExecutor(NewDryRunExecutor(&buf)),
+	)
+
+	_, err := engine.Run(context.Background(), "fw-agent", RunOpts{})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	output := buf.String()
+	if !strings.Contains(output, "--upload") || !strings.Contains(output, "prompt.md") {
+		t.Errorf("expected prompt file upload for framework agent, got: %s", output)
 	}
 }

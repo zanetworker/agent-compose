@@ -81,3 +81,18 @@ func TestDryRunExecutor_CreateSandbox_WithSandboxOpts(t *testing.T) {
 		t.Errorf("expected --label in output: %s", output)
 	}
 }
+
+func TestDryRunExecutor_CreateSandbox_WithWorkspace(t *testing.T) {
+	var buf bytes.Buffer
+	exec := NewDryRunExecutor(&buf)
+	spec := &ResolvedSpec{
+		Image:     "test:latest",
+		Env:       map[string]string{},
+		Workspace: "/tmp/my-project",
+	}
+	exec.CreateSandbox(nil, "test", spec)
+	output := buf.String()
+	if !strings.Contains(output, "--upload /tmp/my-project") {
+		t.Errorf("expected --upload for workspace in output: %s", output)
+	}
+}

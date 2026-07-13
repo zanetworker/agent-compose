@@ -47,7 +47,6 @@ type Agent struct {
 	Runtime    string            `yaml:"runtime,omitempty"`
 	Image      string            `yaml:"image,omitempty"`
 	Prompt     string            `yaml:"prompt,omitempty"`
-	PromptFile string            `yaml:"prompt-file,omitempty"`
 	Inference  string            `yaml:"inference,omitempty"`
 	Model      string            `yaml:"model,omitempty"`
 	MCP        []string          `yaml:"mcp,omitempty"`

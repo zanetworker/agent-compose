@@ -78,10 +78,12 @@ func initCmd() *cobra.Command {
 				if providerExists(openshellBin, "github") {
 					fmt.Println("  GitHub token found           github provider already exists")
 				} else {
-					out, err := exec.Command(openshellBin, "provider", "create",
+					cmd := exec.Command(openshellBin, "provider", "create",
 						"--type", "github",
 						"--name", "github",
-						"--credential", "api_token="+strings.TrimSpace(string(ghToken))).CombinedOutput()
+						"--credential", "api_token")
+					cmd.Env = append(os.Environ(), "api_token="+strings.TrimSpace(string(ghToken)))
+					out, err := cmd.CombinedOutput()
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "  GitHub token found           failed to create github provider: %s\n", strings.TrimSpace(string(out)))
 					} else {
@@ -98,10 +100,12 @@ func initCmd() *cobra.Command {
 				if providerExists(openshellBin, "claude-code") {
 					fmt.Println("  Anthropic API key found      claude-code provider already exists")
 				} else {
-					out, err := exec.Command(openshellBin, "provider", "create",
+					cmd := exec.Command(openshellBin, "provider", "create",
 						"--type", "claude-code",
 						"--name", "claude-code",
-						"--credential", "api_key="+key).CombinedOutput()
+						"--credential", "api_key")
+					cmd.Env = append(os.Environ(), "api_key="+key)
+					out, err := cmd.CombinedOutput()
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "  Anthropic API key found      failed to create claude-code provider: %s\n", strings.TrimSpace(string(out)))
 					} else {

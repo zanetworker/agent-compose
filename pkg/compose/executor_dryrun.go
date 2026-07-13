@@ -35,6 +35,9 @@ func (e *DryRunExecutor) CreateSandbox(_ context.Context, name string, spec *Res
 	for _, m := range spec.SkillMounts {
 		args = append(args, "--upload", fmt.Sprintf("%s:%s", m.Source, m.Target))
 	}
+	if spec.Workspace != "" {
+		args = append(args, "--upload", spec.Workspace)
+	}
 	if spec.Sandbox.Scope != "" {
 		args = append(args, "--scope", spec.Sandbox.Scope)
 	}
@@ -60,6 +63,11 @@ func (e *DryRunExecutor) CreateSandbox(_ context.Context, name string, spec *Res
 func (e *DryRunExecutor) ExecInSandbox(_ context.Context, name string, cmd []string) error {
 	args := append([]string{"openshell", "sandbox", "exec", "--name", name, "--"}, cmd...)
 	fmt.Fprintln(e.out, strings.Join(args, " "))
+	return nil
+}
+
+func (e *DryRunExecutor) ConnectSandbox(_ context.Context, name string) error {
+	fmt.Fprintf(e.out, "openshell sandbox connect %s\n", name)
 	return nil
 }
 
