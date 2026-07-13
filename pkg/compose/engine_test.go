@@ -305,8 +305,14 @@ func TestEngine_List_FromExecutor(t *testing.T) {
 
 func TestEngine_Run_FrameworkAgent_PromptUploaded(t *testing.T) {
 	cfg := DefaultConfig()
+	cfg.Runtimes["test-framework"] = RuntimeProfile{
+		Kind:       "framework",
+		Image:      "python:3.12-slim",
+		EnvMapping: map[string]string{},
+		Entrypoint: []string{"python", "-m", "agent"},
+	}
 	cfg.Agents["fw-agent"] = Agent{
-		Runtime: "adk",
+		Runtime: "test-framework",
 		Prompt:  "You are a helpful assistant",
 	}
 	cfg.Defaults.Inference = ""

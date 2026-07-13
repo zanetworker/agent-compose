@@ -90,7 +90,6 @@ func TestDefaultConfig_HasBuiltInRuntimes(t *testing.T) {
 		"claude-code-vertex": "harness",
 		"codex":              "harness",
 		"goose":              "harness",
-		"adk":                "framework",
 	}
 	for name, wantKind := range expected {
 		rt, ok := cfg.Runtimes[name]
@@ -111,9 +110,6 @@ func TestDefaultConfig_RuntimeProviders(t *testing.T) {
 	}
 	if providers := cfg.Runtimes["claude-code-vertex"].Providers; len(providers) == 0 || providers[0] != "google-vertex-ai" {
 		t.Errorf("claude-code-vertex runtime should declare google-vertex-ai provider, got %v", providers)
-	}
-	if providers := cfg.Runtimes["adk"].Providers; len(providers) == 0 || providers[0] != "google-vertex-ai" {
-		t.Errorf("adk runtime should declare google-vertex-ai provider, got %v", providers)
 	}
 }
 

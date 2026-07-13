@@ -160,9 +160,10 @@ ac doctor                        Validate config and check environment readiness
 | claude-code-vertex | harness | google-vertex-ai | CLAUDE_CODE_USE_VERTEX, CLOUD_ML_REGION |
 | codex | harness | codex | OPENAI_BASE_URL, OPENAI_MODEL |
 | goose | harness | (none) | OPENAI_BASE_URL, GOOSE_MODEL |
-| adk | framework | google-vertex-ai | GOOGLE_GENAI_MODEL |
 
 Credentials are handled by OpenShell providers. Only non-credential env vars go through agent-compose.
+
+Framework and raw agents (ADK, LangGraph, custom containers) are defined in your config.yaml with a custom image and entrypoint. See [docs/composition.md](docs/composition.md).
 
 ## Development
 

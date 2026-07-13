@@ -48,16 +48,6 @@ func DefaultConfig() *Config {
 				Entrypoint: []string{"goose", "session"},
 				Tools:      []string{"shell", "file-read", "file-write"},
 			},
-			"adk": {
-				Kind:  "framework",
-				Image: "python:3.12-slim",
-				EnvMapping: map[string]string{
-					"GOOGLE_GENAI_MODEL": "${model}",
-				},
-				Entrypoint: []string{"python", "-m", "agent"},
-				Tools:      []string{"shell", "file-read", "file-write"},
-				Providers:  []string{"google-vertex-ai"},
-			},
 		},
 		Inference: make(map[string]InferenceSpec),
 		MCP:       make(map[string]MCPSpec),
