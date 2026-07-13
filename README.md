@@ -11,37 +11,59 @@ make build
 
 # Initialize: creates config + auto-detects local credentials (Vertex, GitHub, Anthropic)
 ac init
+#   Google Cloud ADC found       created vertex provider
+#   GitHub token found           created github provider
 
 # Validate your setup
 ac doctor
 
-# Compose and run an agent
-ac run --runtime claude-code-vertex --prompt "Review this code" --dry-run
+# Compose an agent inline: runtime + inference + MCP servers + skills + prompt
+ac run --runtime claude-code-vertex \
+       --mcp github \
+       --skills security-review \
+       --prompt "Review this PR for vulnerabilities" \
+       --workspace ./my-project \
+       --dry-run
+
+# Or use a named agent (same composition, declared in config.yaml)
 ac run security-reviewer --workspace ./my-project
 
-# Inspect, list, stop
+# Override the model for a single run
+ac run security-reviewer --model llama-3.3-70b
+
+# See exactly what was resolved (providers, env vars, assembled prompt, skill mounts)
 ac get security-reviewer --json
+
+# Lifecycle
 ac list
 ac stop security-reviewer
 ```
 
 ## How It Works
 
-You define agents as compositions of runtime + inference + MCP servers + skills + prompt:
+You define agents as compositions of five things:
 
 ```yaml
 # ~/.ac/config.yaml
 agents:
   security-reviewer:
-    runtime: claude-code-vertex
-    mcp: [github]
-    skills: [security-review]
-    prompt: "Review code for security vulnerabilities."
+    runtime: claude-code-vertex        # how to run it (image, entrypoint, providers)
+    inference: vertex                   # which model (endpoint, default model, tiers)
+    mcp: [github, jira]                # what tools it can access (credentials, egress)
+    skills: [security-review]          # what instructions + references it gets
+    prompt: "Review code for vulnerabilities."
 ```
 
-`ac run security-reviewer` resolves this into providers, env vars, skill prompts, egress rules, and sandbox config, then calls `openshell sandbox create` with the right flags. The developer types one command; the engine handles the plumbing.
+`ac run security-reviewer` resolves this into:
+- **Providers:** google-vertex-ai + github + jira (OpenShell handles credentials + egress)
+- **Env vars:** ANTHROPIC_DEFAULT_SONNET_MODEL=claude-sonnet-4 (non-credential, from N-var mapping)
+- **Prompt:** agent prompt + security-review skill prompt (assembled, deduped)
+- **Skill mounts:** owasp-top-10.md uploaded into the sandbox
+- **Sandbox opts:** scope=session, ttl=30m
 
-See [docs/composition.md](docs/composition.md) for the full walkthrough (MCP servers, skills, named agents, ad hoc composition).
+Then calls `openshell sandbox create` with the right flags. The developer types one command; the engine handles the plumbing.
+
+See [docs/composition.md](docs/composition.md) for the full walkthrough.
 
 ## Agent Types
 
