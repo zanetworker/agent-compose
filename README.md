@@ -52,6 +52,133 @@ ac stop code-reviewer
 ac apply --sync-profiles
 ```
 
+## Running Agents
+
+### Prerequisites
+
+1. An OpenShell gateway running (local with podman or on a cluster via Helm)
+2. `openshell` CLI installed and connected to the gateway (`openshell status` shows Connected)
+3. `ac` binary built (`make build`)
+
+### Example 1: Claude Code via Vertex AI
+
+Claude Code needs Anthropic's API. If you use Vertex AI (GCP), set up the `google-vertex-ai` provider once:
+
+```bash
+# One-time: create the Vertex provider from your local gcloud ADC
+openshell provider create --type google-vertex-ai --name vertex --from-gcloud-adc
+
+# Run Claude Code in a sandbox
+openshell sandbox create --name my-claude \
+  --provider vertex \
+  --env CLAUDE_CODE_USE_VERTEX=1 \
+  --env CLOUD_ML_REGION=us-east5 \
+  --env ANTHROPIC_VERTEX_PROJECT_ID=your-project-id \
+  --env GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud-adc.json \
+  --upload ~/.config/gcloud/application_default_credentials.json:/tmp/gcloud-adc.json \
+  --auto-providers --no-tty \
+  -- claude -p "Say hello" --max-turns 1 --dangerously-skip-permissions
+```
+
+You also need to open egress for Vertex and OAuth (the `google-vertex-ai` profile currently misses `oauth2.googleapis.com`):
+
+```bash
+openshell policy update my-claude \
+  --add-endpoint "us-east5-aiplatform.googleapis.com:443:read-write:rest:enforce" \
+  --add-endpoint "oauth2.googleapis.com:443:read-write:rest:enforce" \
+  --add-endpoint "statsig.anthropic.com:443:read-write:rest:enforce" \
+  --binary /usr/local/bin/claude
+```
+
+With agent-compose, this becomes:
+
+```bash
+ac run --runtime claude-code-vertex --prompt "Say hello"
+```
+
+The engine resolves the runtime profile, attaches the `google-vertex-ai` provider, sets the Vertex env vars, and creates the sandbox. The policy update step is still manual until the upstream profile gap is fixed.
+
+### Example 2: Custom agent against a vLLM endpoint (GPU cluster)
+
+Any agent that uses the OpenAI-compatible API can call models served by vLLM/KServe:
+
+```bash
+# Create a sandbox with the inference endpoint as an env var
+openshell sandbox create --name my-agent \
+  --env OPENAI_BASE_URL=https://qwen3-14b-user-nxu.apps.ocp.cloud.rhai-tmm.dev/v1 \
+  --env OPENAI_MODEL=qwen3-14b \
+  --no-tty
+
+# Open egress to the endpoint
+openshell policy update my-agent \
+  --add-endpoint "qwen3-14b-user-nxu.apps.ocp.cloud.rhai-tmm.dev:443:read-write:rest:enforce" \
+  --binary /usr/bin/curl
+
+# Run a query from inside the sandbox
+openshell sandbox exec --name my-agent -- \
+  curl -sk $OPENAI_BASE_URL/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"qwen3-14b","messages":[{"role":"user","content":"Hello"}],"max_tokens":20}'
+```
+
+With agent-compose:
+
+```yaml
+# ~/.ac/config.yaml
+runtimes:
+  qwen-agent:
+    kind: raw
+    image: ghcr.io/nvidia/openshell-community/sandboxes/base:latest
+    env-mapping:
+      OPENAI_BASE_URL: "${endpoint}"
+      OPENAI_MODEL: "${model}"
+    entrypoint: ["python3", "agent.py"]
+
+inference:
+  gpu-cluster:
+    endpoint: https://qwen3-14b-user-nxu.apps.ocp.cloud.rhai-tmm.dev/v1
+    provider: ""
+    default-model: qwen3-14b
+
+agents:
+  my-agent:
+    runtime: qwen-agent
+    prompt: "You are a helpful assistant"
+```
+
+```bash
+ac run my-agent
+```
+
+### Example 3: ADK / LangGraph agent via Vertex AI
+
+Framework agents use the same provider system. An ADK agent that calls Gemini via Vertex:
+
+```yaml
+runtimes:
+  support-bot:
+    kind: framework
+    image: myco/support-bot:v2.1
+    env-mapping:
+      GOOGLE_GENAI_MODEL: "${model}"
+    entrypoint: ["python", "-m", "agent"]
+    providers: [google-vertex-ai]
+
+agents:
+  support:
+    runtime: support-bot
+```
+
+```bash
+# One-time provider setup
+openshell provider create --type google-vertex-ai --name vertex --from-gcloud-adc
+
+# Run
+ac run support
+```
+
+The `google-vertex-ai` provider handles credentials via OpenShell's GCE metadata emulator. The ADK agent's Python code calls `google.auth.default()` and gets a token transparently.
+
 ## What the Engine Produces
 
 ```bash
