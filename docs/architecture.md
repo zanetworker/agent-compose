@@ -77,6 +77,14 @@ run, _ = engine.Run(ctx, "", compose.RunOpts{
 
 ## Sandbox Lifecycle
 
+When running an agent:
+
+1. **CreateSandbox** — creates sandbox with base providers from runtime config
+2. **UpdatePolicy** — adds egress endpoints from ResolvedSpec (inference + MCP)
+3. **ExecInSandbox** — runs the agent entrypoint
+
+Policy updates have a ~10s propagation delay. The engine waits before executing the agent.
+
 Configurable via defaults or per-agent:
 
 ```yaml

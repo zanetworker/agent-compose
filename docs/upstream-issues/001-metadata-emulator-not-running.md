@@ -1,5 +1,7 @@
 # GCE Metadata Emulator Not Running with google-vertex-ai Provider
 
+**Status: RESOLVED.** Merged upstream in OpenShell #1706 (commit 48545cfb). Requires gateway version 0.0.83+. The metadata emulator starts when a `google-cloud` provider is attached to the sandbox. `ac init` creates this provider automatically.
+
 **Component:** openshell-sandbox
 **Severity:** High (blocks all GCP SDK consumers inside sandboxes)
 

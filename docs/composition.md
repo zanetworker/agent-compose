@@ -107,14 +107,23 @@ Runtime profiles declare which OpenShell providers they need:
 ```yaml
 runtimes:
   claude-code:
-    providers: [claude-code]      # OpenShell handles credentials + egress
+    providers: [claude-code]                       # OpenShell handles credentials + egress
   claude-code-vertex:
-    providers: [google-vertex-ai]
+    providers: [google-vertex-ai, google-cloud]    # google-cloud enables metadata emulator
 ```
 
 Credentials (API keys, tokens) are handled by OpenShell providers, not env vars. The engine only passes non-credential env vars (model names, endpoint overrides).
 
 `ac init` auto-creates providers from local credentials (gcloud ADC, gh token, ANTHROPIC_API_KEY).
+
+**Policy composition:** The engine auto-adds egress endpoints after sandbox creation via `UpdatePolicy`. Template variables in endpoint strings (`${region}`, `${project}`) are expanded from the runtime's env vars. Example:
+```yaml
+inference:
+  vertex:
+    egress:
+      - "${region}-aiplatform.googleapis.com:443"
+```
+With `CLOUD_ML_REGION=us-east5`, this resolves to `us-east5-aiplatform.googleapis.com:443`.
 
 ## Resolution Pipeline
 

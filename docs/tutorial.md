@@ -330,11 +330,11 @@ Run the included SDK tests to see more examples:
 go test ./examples/ -v
 ```
 
-## Step 12: Run a Framework Agent (ADK Example)
+## Step 12: Run a Framework Agent (Custom ADK Example)
 
 Harness agents (Claude Code, Codex, Goose) are pre-installed in the OpenShell base image. Framework agents are different: you bring your own code, and agent-compose handles the infrastructure (inference endpoint, credentials, prompt, sandbox).
 
-A working example is included at `examples/adk-agent/agent.py`. It's a minimal Python agent that reads a prompt from `/sandbox/prompt.md`, calls an OpenAI-compatible inference endpoint, and prints the response.
+A working example is included at `examples/adk-agent/agent.py`. It's a minimal Python agent that reads a prompt from `/sandbox/prompt.md`, calls an OpenAI-compatible inference endpoint, and prints the response. This is a custom framework runtime (user-defined in config), not a built-in.
 
 **Step 12a: Add the framework runtime and inference to your config**
 

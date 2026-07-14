@@ -10,29 +10,17 @@
 ## Example 1: Claude Code via Vertex AI
 
 ```bash
-# ac init already created the vertex provider from gcloud ADC
+# ac init already created the google-vertex-ai and google-cloud providers from gcloud ADC
+# The engine auto-adds Vertex egress via UpdatePolicy after CreateSandbox
 
-# Run (still needs manual policy update for oauth2, see upstream issues)
-openshell sandbox create --name my-claude \
-  --provider vertex \
-  --env CLAUDE_CODE_USE_VERTEX=1 \
-  --env CLOUD_ML_REGION=us-east5 \
-  --env ANTHROPIC_VERTEX_PROJECT_ID=your-project-id \
-  --env GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud-adc.json \
-  --upload ~/.config/gcloud/application_default_credentials.json:/tmp/gcloud-adc.json \
-  --auto-providers --no-tty
-
-openshell policy update my-claude \
-  --add-endpoint "us-east5-aiplatform.googleapis.com:443:read-write:rest:enforce" \
-  --add-endpoint "oauth2.googleapis.com:443:read-write:rest:enforce" \
-  --add-endpoint "statsig.anthropic.com:443:read-write:rest:enforce" \
-  --binary /usr/local/bin/claude
-
-openshell sandbox exec --name my-claude --no-tty -- \
-  claude -p "Say hello" --max-turns 1 --dangerously-skip-permissions
+ac run --runtime claude-code-vertex --prompt "Say hello" --skip-permissions
 ```
 
-With agent-compose: `ac run --runtime claude-code-vertex --prompt "Say hello"`
+**What the engine does:**
+1. Creates sandbox with `google-vertex-ai` and `google-cloud` providers (from runtime config)
+2. Calls `UpdatePolicy` to add `${region}-aiplatform.googleapis.com:443` (from ResolvedSpec)
+3. Waits ~10s for policy propagation
+4. Executes: `claude -p "Say hello" --dangerously-skip-permissions`
 
 ## Example 2: Custom agent against vLLM (GPU cluster)
 

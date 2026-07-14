@@ -125,6 +125,8 @@ $ go test ./examples/ -v
 
 See [upstream-issues/](upstream-issues/) for detailed write-ups with evidence.
 
-1. **GCE Metadata Emulator Not Running** ([001](upstream-issues/001-metadata-emulator-not-running.md)): Vertex provider doesn't start the metadata emulator. GCP SDKs can't discover credentials. Workaround: upload ADC file.
+1. **GCE Metadata Emulator Not Running** ([001](upstream-issues/001-metadata-emulator-not-running.md)): **RESOLVED** (OpenShell #1706). Gateway 0.0.83+ starts the metadata emulator when `google-cloud` provider is attached. `ac init` creates this provider automatically.
 
-2. **Provider env_vars Not Injected** ([002](upstream-issues/002-provider-env-vars-not-injected.md)): Credentials injected under internal name (`api_token`), not declared env var names (`GITHUB_TOKEN`). CLI tools fail. Workaround: pass `--env GH_TOKEN=...` manually.
+2. **Provider env_vars Not Injected** ([002](upstream-issues/002-provider-env-vars-not-injected.md)): **OPEN**. Credentials injected under internal name (`api_token`), not declared env var names (`GITHUB_TOKEN`). CLI tools fail. Workaround: pass `--env GH_TOKEN=...` manually.
+
+**Note:** Policy propagation has a ~10s delay after `UpdatePolicy` calls. Wait before testing egress changes.

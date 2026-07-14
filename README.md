@@ -155,10 +155,10 @@ ac doctor                        Validate config and check environment readiness
 
 ## Built-in Runtimes
 
-| Runtime | Kind | OpenShell Provider | Key Env Vars |
+| Runtime | Kind | OpenShell Providers | Key Env Vars |
 |---|---|---|---|
 | claude-code | harness | claude-code | ANTHROPIC_BASE_URL, ANTHROPIC_DEFAULT_SONNET_MODEL |
-| claude-code-vertex | harness | google-vertex-ai | CLAUDE_CODE_USE_VERTEX, CLOUD_ML_REGION |
+| claude-code-vertex | harness | google-vertex-ai, google-cloud | CLAUDE_CODE_USE_VERTEX, CLOUD_ML_REGION |
 | codex | harness | codex | OPENAI_BASE_URL, OPENAI_MODEL |
 | goose | harness | (none) | OPENAI_BASE_URL, GOOSE_MODEL |
 
