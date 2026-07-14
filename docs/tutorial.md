@@ -108,9 +108,37 @@ Instead of a one-shot prompt, open an interactive terminal inside the sandbox:
 
 This creates the sandbox and drops you into `openshell sandbox connect`. You get a shell inside the sandboxed environment where Claude Code is available. Type `claude` to start a session. Press `Ctrl-D` or `exit` to leave.
 
-## Step 5: Create a Skill
+## Step 5: Configure an MCP Server
 
-Skills are reusable prompt bundles with optional reference files. Create one:
+MCP servers give agents access to external tools (GitHub, Jira, Slack). Add GitHub to your config:
+
+```yaml
+# Add to ~/.ac/config.yaml under the mcp: section
+mcp:
+  github:
+    provider: github
+    egress:
+      - api.github.com:443
+      - github.com:443
+```
+
+Compose an agent with GitHub access:
+
+```bash
+./ac run --runtime claude-code-vertex \
+         --mcp github \
+         --prompt "What is the description of the NVIDIA/OpenShell repo?" \
+         --skip-permissions \
+         --dry-run
+```
+
+The dry-run should show `--provider github` in the sandbox create command.
+
+## Step 6: Create a Skill
+
+Skills are reusable prompt bundles with optional reference files. They can declare MCP and tool dependencies that get auto-merged into the agent's config.
+
+Create a security review skill:
 
 ```bash
 mkdir -p ~/.ac/skills/security-review/references
@@ -148,6 +176,8 @@ cat > ~/.ac/skills/security-review/references/owasp-top-10.md << 'EOF'
 EOF
 ```
 
+This skill declares `requires.mcp: [github]`, which is why we configured the GitHub MCP server in Step 5 first. When the agent uses this skill, the GitHub provider is attached automatically.
+
 Verify the skill is found:
 
 ```bash
@@ -158,36 +188,9 @@ Verify the skill is found:
 ```
 
 The dry-run output should show:
+- `--provider github` (auto-added from the skill's `requires.mcp`)
 - `--upload .../owasp-top-10.md:/workspace/skills/security-review/` (reference file)
 - The exec command includes the agent prompt AND the skill prompt assembled together
-
-## Step 6: Configure an MCP Server
-
-MCP servers give agents access to external tools. Add GitHub to your config:
-
-```bash
-cat >> ~/.ac/config.yaml << 'EOF'
-
-mcp:
-  github:
-    provider: github
-    egress:
-      - api.github.com:443
-      - github.com:443
-EOF
-```
-
-Now compose an agent with GitHub access:
-
-```bash
-./ac run --runtime claude-code-vertex \
-         --mcp github \
-         --prompt "What is the description of the NVIDIA/OpenShell repo?" \
-         --skip-permissions \
-         --dry-run
-```
-
-The dry-run should show `--provider github` in the sandbox create command.
 
 ## Step 7: Configure an Inference Provider
 
