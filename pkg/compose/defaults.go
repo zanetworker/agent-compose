@@ -25,7 +25,7 @@ func DefaultConfig() *Config {
 				},
 				Entrypoint: []string{"claude"},
 				Tools:      []string{"shell", "file-read", "file-write", "bundle-mcp"},
-				Providers:  []string{"google-vertex-ai"},
+				Providers:  []string{"google-vertex-ai", "google-cloud"},
 			},
 			"codex": {
 				Kind:  "harness",

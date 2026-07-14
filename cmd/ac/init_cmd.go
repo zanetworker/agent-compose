@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -54,6 +55,7 @@ func initCmd() *cobra.Command {
 				adcPath = filepath.Join(home, ".config", "gcloud", "application_default_credentials.json")
 			}
 			if _, err := os.Stat(adcPath); err == nil {
+				// Vertex AI provider (inference)
 				if providerExists(openshellBin, "vertex") {
 					fmt.Println("  Google Cloud ADC found       vertex provider already exists")
 				} else {
@@ -65,6 +67,18 @@ func initCmd() *cobra.Command {
 						fmt.Fprintf(os.Stderr, "  Google Cloud ADC found       failed to create vertex provider: %s\n", strings.TrimSpace(string(out)))
 					} else {
 						fmt.Println("  Google Cloud ADC found       created vertex provider")
+						created++
+					}
+				}
+
+				// Google Cloud provider (metadata emulator for GCP SDK auth)
+				if providerExists(openshellBin, "gcp") {
+					fmt.Println("  Google Cloud ADC found       gcp provider already exists")
+				} else {
+					if err := createGCPProvider(openshellBin, adcPath); err != nil {
+						fmt.Fprintf(os.Stderr, "  Google Cloud ADC found       failed to create gcp provider: %v\n", err)
+					} else {
+						fmt.Println("  Google Cloud ADC found       created gcp provider (metadata emulator)")
 						created++
 					}
 				}
@@ -130,6 +144,53 @@ func initCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&skipProviders, "skip-providers", false, "skip auto-creating providers")
 	return cmd
+}
+
+func createGCPProvider(bin, adcPath string) error {
+	data, err := os.ReadFile(adcPath)
+	if err != nil {
+		return fmt.Errorf("reading ADC file: %w", err)
+	}
+
+	type adcJSON struct {
+		ClientID     string `json:"client_id"`
+		ClientSecret string `json:"client_secret"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	var adc adcJSON
+	if err := json.Unmarshal(data, &adc); err != nil {
+		return fmt.Errorf("parsing ADC JSON: %w", err)
+	}
+	if adc.ClientID == "" || adc.ClientSecret == "" || adc.RefreshToken == "" {
+		return fmt.Errorf("ADC file missing client_id, client_secret, or refresh_token")
+	}
+
+	// Step 1: create the provider with a placeholder credential
+	env := append(os.Environ(), "GCP_ADC_ACCESS_TOKEN=placeholder")
+	cmd := exec.Command(bin, "provider", "create",
+		"--type", "google-cloud",
+		"--name", "gcp",
+		"--credential", "GCP_ADC_ACCESS_TOKEN")
+	cmd.Env = env
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("creating provider: %s", strings.TrimSpace(string(out)))
+	}
+
+	// Step 2: configure refresh with ADC material
+	out, err := exec.Command(bin, "provider", "refresh", "configure", "gcp",
+		"--credential-key", "GCP_ADC_ACCESS_TOKEN",
+		"--strategy", "oauth2-refresh-token",
+		"--material", "client_id="+adc.ClientID,
+		"--material", "client_secret="+adc.ClientSecret,
+		"--material", "refresh_token="+adc.RefreshToken,
+		"--secret-material-key", "client_secret",
+		"--secret-material-key", "refresh_token",
+	).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("configuring refresh: %s", strings.TrimSpace(string(out)))
+	}
+
+	return nil
 }
 
 func providerExists(bin, name string) bool {
