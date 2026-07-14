@@ -93,6 +93,25 @@ $ ac stop hello-1783881595
 Agent hello-1783881595 stopped
 ```
 
+## Framework: ADK Agent calling gemma-3-12b-it (GPU cluster)
+
+Python agent (`examples/adk-agent/agent.py`) inside a sandbox, calling gemma-3-12b-it served by vLLM on the GPU cluster via OpenAI-compatible API.
+
+```
+$ openshell sandbox exec --name adk-live -- python3 /sandbox/agent.py
+
+Agent: calling gemma-3-12b-it at https://gemma-3-12b-it-user-nxu.apps.ocp.cloud.rhai-tmm.dev/v1
+Prompt: Explain what an agent composition engine does in one sentence....
+
+An agent composition engine automatically combines and orchestrates multiple
+individual agents to create a more complex, capable agent capable of handling
+more sophisticated tasks.
+```
+
+**What was configured:** `OPENAI_BASE_URL` and `OPENAI_MODEL` env vars, agent.py uploaded via `--upload`, prompt written to `/sandbox/prompt.md`, policy update to allow the GPU cluster endpoint for the python binary.
+
+**Upload path gotcha:** `--upload file.py:/sandbox/agent.py` creates a directory `/sandbox/agent.py/agent.py` (OpenShell extracts tar into a directory). Use `--upload file.py:/sandbox/` to place the file directly at `/sandbox/file.py`.
+
 ## SDK
 
 ```
