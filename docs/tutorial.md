@@ -327,32 +327,103 @@ Run the included SDK tests to see more examples:
 go test ./examples/ -v
 ```
 
-## Step 12: Define a Framework Agent
+## Step 12: Run a Framework Agent (ADK Example)
 
-For non-harness agents (ADK, LangGraph, custom), define a runtime with your own image:
+Harness agents (Claude Code, Codex, Goose) are pre-installed in the OpenShell base image. Framework agents are different: you bring your own code, and agent-compose handles the infrastructure (inference endpoint, credentials, prompt, sandbox).
 
-```yaml
-# In ~/.ac/config.yaml
-runtimes:
-  my-adk-agent:
-    kind: framework
-    image: myregistry.com/my-adk-agent:latest
-    env-mapping:
-      GOOGLE_GENAI_MODEL: "${model}"
-    entrypoint: ["python", "-m", "agent"]
-    providers: [google-vertex-ai]
+A working example is included at `examples/adk-agent/agent.py`. It's a minimal Python agent that reads a prompt from `/sandbox/prompt.md`, calls an OpenAI-compatible inference endpoint, and prints the response.
 
-agents:
-  support-bot:
-    runtime: my-adk-agent
-    prompt: "You are a helpful support agent."
-```
+**Step 12a: Add the framework runtime and inference to your config**
 
 ```bash
-./ac run support-bot --workspace ./agent-code
+cat >> ~/.ac/config.yaml << 'EOF'
+
+runtimes:
+  adk-agent:
+    kind: framework
+    image: ghcr.io/nvidia/openshell-community/sandboxes/base:latest
+    env-mapping:
+      OPENAI_BASE_URL: "${endpoint}"
+      OPENAI_MODEL: "${model}"
+    entrypoint: ["python3", "/sandbox/agent.py"]
+
+inference:
+  gpu-cluster:
+    endpoint: https://qwen3-14b.apps.your-cluster.com/v1
+    provider: ""
+    default-model: qwen3-14b
+    egress:
+      - qwen3-14b.apps.your-cluster.com:443
+
+agents:
+  my-adk-agent:
+    runtime: adk-agent
+    inference: gpu-cluster
+    prompt: "Explain what an agent composition engine does in two sentences."
+EOF
 ```
 
-The prompt is uploaded as `/sandbox/prompt.md` for framework agents (harness agents get it via `-p` flag).
+Replace the inference endpoint with a real one you have access to. Any OpenAI-compatible endpoint works (vLLM, MaaS, Ollama, etc.).
+
+**Step 12b: Dry-run to see the composition**
+
+```bash
+./ac run my-adk-agent --workspace ./examples/adk-agent --dry-run
+```
+
+Expected output shows:
+- `--from ghcr.io/nvidia/openshell-community/sandboxes/base:latest` (base image with Python)
+- `--env OPENAI_BASE_URL=https://...` (inference endpoint from config)
+- `--env OPENAI_MODEL=qwen3-14b` (model from config)
+- `--upload .../agent.py:...` (your agent code uploaded from workspace)
+- `--upload .../prompt.md:...` (prompt written and uploaded by agent-compose)
+- `openshell sandbox exec ... -- python3 /sandbox/agent.py` (entrypoint)
+
+**Step 12c: Inspect the resolved spec**
+
+```bash
+./ac get my-adk-agent
+```
+
+```json
+{
+  "runtime_kind": "framework",
+  "image": "ghcr.io/nvidia/openshell-community/sandboxes/base:latest",
+  "entrypoint": ["python3", "/sandbox/agent.py"],
+  "env": {
+    "OPENAI_BASE_URL": "https://qwen3-14b.apps.your-cluster.com/v1",
+    "OPENAI_MODEL": "qwen3-14b"
+  },
+  "prompt": "Explain what an agent composition engine does in two sentences.",
+  "sandbox": {"scope": "session", "mode": "all", "ttl": "30m"}
+}
+```
+
+**Step 12d: Run it**
+
+```bash
+./ac run my-adk-agent --workspace ./examples/adk-agent
+```
+
+The agent code is uploaded into the sandbox, the prompt is written to `/sandbox/prompt.md`, the inference env vars are set, and `python3 /sandbox/agent.py` runs inside the sandboxed environment.
+
+**Step 12e: Override the model**
+
+```bash
+./ac run my-adk-agent --workspace ./examples/adk-agent --model llama-3.3-70b
+```
+
+Same agent, different model. The `OPENAI_MODEL` env var changes; everything else stays the same.
+
+**How framework agents differ from harness agents:**
+
+| | Harness (claude-code) | Framework (adk-agent) |
+|---|---|---|
+| Image | Base image (agent pre-installed) | Base image or custom (your code uploaded) |
+| Prompt delivery | `-p` flag on the entrypoint | Uploaded as `/sandbox/prompt.md` |
+| Code | Already in the image | Uploaded via `--workspace` |
+| Entrypoint | `claude`, `codex`, `goose` | Your command (`python3 agent.py`) |
+| Inference | Anthropic/OpenAI API via provider | Any OpenAI-compatible endpoint |
 
 ## What Each Command Does
 
