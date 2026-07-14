@@ -7,6 +7,7 @@ import (
 
 type Executor interface {
 	CreateSandbox(ctx context.Context, name string, spec *ResolvedSpec) error
+	UpdatePolicy(ctx context.Context, name string, spec *ResolvedSpec) error
 	ExecInSandbox(ctx context.Context, name string, cmd []string) error
 	ConnectSandbox(ctx context.Context, name string) error
 	DeleteSandbox(ctx context.Context, name string) error

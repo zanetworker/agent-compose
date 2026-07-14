@@ -142,6 +142,11 @@ func (e *Engine) Run(ctx context.Context, name string, opts RunOpts) (*Run, erro
 		return nil, fmt.Errorf("creating sandbox: %w", err)
 	}
 
+	if err := e.executor.UpdatePolicy(ctx, sandboxName, spec); err != nil {
+		e.executor.DeleteSandbox(ctx, sandboxName)
+		return nil, fmt.Errorf("updating policy: %w", err)
+	}
+
 	if opts.Interactive {
 		if err := e.executor.ConnectSandbox(ctx, sandboxName); err != nil {
 			return nil, fmt.Errorf("connecting to sandbox: %w", err)

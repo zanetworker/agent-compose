@@ -231,6 +231,10 @@ func (m *mockExecutorWithList) CreateSandbox(_ context.Context, name string, spe
 	return nil
 }
 
+func (m *mockExecutorWithList) UpdatePolicy(_ context.Context, name string, spec *ResolvedSpec) error {
+	return nil
+}
+
 func (m *mockExecutorWithList) ExecInSandbox(_ context.Context, name string, cmd []string) error {
 	if m.buf != nil {
 		fmt.Fprintf(m.buf, "exec in %s: %v\n", name, cmd)

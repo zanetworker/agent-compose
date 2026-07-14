@@ -60,6 +60,21 @@ func (e *DryRunExecutor) CreateSandbox(_ context.Context, name string, spec *Res
 	return nil
 }
 
+func (e *DryRunExecutor) UpdatePolicy(_ context.Context, name string, spec *ResolvedSpec) error {
+	if len(spec.Egress) == 0 {
+		return nil
+	}
+	args := []string{"openshell", "policy", "update", name}
+	for _, endpoint := range spec.Egress {
+		args = append(args, "--add-endpoint", endpoint+":read-write:rest:enforce")
+	}
+	if len(spec.Entrypoint) > 0 {
+		args = append(args, "--binary", spec.Entrypoint[0])
+	}
+	fmt.Fprintln(e.out, strings.Join(args, " "))
+	return nil
+}
+
 func (e *DryRunExecutor) ExecInSandbox(_ context.Context, name string, cmd []string) error {
 	args := append([]string{"openshell", "sandbox", "exec", "--name", name, "--"}, cmd...)
 	fmt.Fprintln(e.out, strings.Join(args, " "))

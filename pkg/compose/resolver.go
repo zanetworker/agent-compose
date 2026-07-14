@@ -170,6 +170,18 @@ func (r *Resolver) Resolve(ctx context.Context, agent Agent) (*ResolvedSpec, err
 
 	spec.Workspace = agent.Workspace
 
+	// Add known egress for providers whose profiles don't auto-compose
+	// into sandbox policy yet (upstream OpenShell #896). Remove once fixed.
+	for _, p := range spec.Providers {
+		switch p {
+		case "google-vertex-ai":
+			for _, region := range []string{"us-east5", "us-central1", "europe-west4"} {
+				spec.Egress = appendUnique(spec.Egress, region+"-aiplatform.googleapis.com:443")
+			}
+			spec.Egress = appendUnique(spec.Egress, "aiplatform.googleapis.com:443")
+		}
+	}
+
 	// Apply sandbox opts from defaults
 	spec.Sandbox = r.defaults.Sandbox
 	if agent.Sandbox.Scope != "" {

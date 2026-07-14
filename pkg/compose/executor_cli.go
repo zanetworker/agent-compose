@@ -56,6 +56,20 @@ func (e *CLIExecutor) CreateSandbox(ctx context.Context, name string, spec *Reso
 	return e.run(ctx, args...)
 }
 
+func (e *CLIExecutor) UpdatePolicy(ctx context.Context, name string, spec *ResolvedSpec) error {
+	if len(spec.Egress) == 0 {
+		return nil
+	}
+	args := []string{"policy", "update", name}
+	for _, endpoint := range spec.Egress {
+		args = append(args, "--add-endpoint", endpoint+":read-write:rest:enforce")
+	}
+	if len(spec.Entrypoint) > 0 {
+		args = append(args, "--binary", spec.Entrypoint[0])
+	}
+	return e.run(ctx, args...)
+}
+
 func (e *CLIExecutor) ExecInSandbox(ctx context.Context, name string, cmd []string) error {
 	args := append([]string{"sandbox", "exec", "--name", name, "--"}, cmd...)
 	return e.run(ctx, args...)
