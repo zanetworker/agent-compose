@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"sort"
 	"strings"
+	"time"
 )
 
 type CLIExecutor struct {
@@ -68,7 +69,12 @@ func (e *CLIExecutor) UpdatePolicy(ctx context.Context, name string, spec *Resol
 	if len(spec.Entrypoint) > 0 {
 		args = append(args, "--binary", spec.Entrypoint[0])
 	}
-	return e.run(ctx, args...)
+	if err := e.run(ctx, args...); err != nil {
+		return err
+	}
+	// Policy propagation delay: OpenShell needs ~10s to enforce new egress rules.
+	time.Sleep(12 * time.Second)
+	return nil
 }
 
 func (e *CLIExecutor) ExecInSandbox(ctx context.Context, name string, cmd []string) error {
