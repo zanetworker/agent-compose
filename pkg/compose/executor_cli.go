@@ -53,6 +53,7 @@ func (e *CLIExecutor) CreateSandbox(ctx context.Context, name string, spec *Reso
 	for _, k := range labelKeys {
 		args = append(args, "--label", fmt.Sprintf("%s=%s", k, spec.Labels[k]))
 	}
+	args = append(args, "--", "true")
 	return e.run(ctx, args...)
 }
 
