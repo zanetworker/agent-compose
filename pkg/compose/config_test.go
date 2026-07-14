@@ -108,7 +108,7 @@ func TestDefaultConfig_RuntimeProviders(t *testing.T) {
 	if providers := cfg.Runtimes["claude-code"].Providers; len(providers) == 0 || providers[0] != "claude-code" {
 		t.Errorf("claude-code runtime should declare claude-code provider, got %v", providers)
 	}
-	if providers := cfg.Runtimes["claude-code-vertex"].Providers; len(providers) == 0 || providers[0] != "google-vertex-ai" {
+	if providers := cfg.Runtimes["claude-code-vertex"].Providers; len(providers) == 0 || providers[0] != "vertex" {
 		t.Errorf("claude-code-vertex runtime should declare google-vertex-ai provider, got %v", providers)
 	}
 }
