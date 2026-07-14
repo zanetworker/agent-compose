@@ -152,10 +152,23 @@ func (e *CLIExecutor) ListSandboxes(ctx context.Context, labelSelector string) (
 
 func (e *CLIExecutor) run(ctx context.Context, args ...string) error {
 	cmd := exec.CommandContext(ctx, e.binary, args...)
-	var stderr bytes.Buffer
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%s %s: %w\nstderr: %s", e.binary, strings.Join(args, " "), err, stderr.String())
+		out := strings.TrimSpace(stdout.String())
+		errOut := strings.TrimSpace(stderr.String())
+		msg := fmt.Sprintf("%s %s: %w", e.binary, strings.Join(args, " "), err)
+		if errOut != "" {
+			msg += "\nstderr: " + errOut
+		}
+		if out != "" {
+			msg += "\nstdout: " + out
+		}
+		return fmt.Errorf("%s", msg)
+	}
+	if out := strings.TrimSpace(stdout.String()); out != "" {
+		fmt.Println(out)
 	}
 	return nil
 }

@@ -23,7 +23,9 @@ func runCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "run [agent-name]",
 		Short: "Resolve agent config, create sandbox, and start agent",
-		Args:  cobra.MaximumNArgs(1),
+		Args:          cobra.MaximumNArgs(1),
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			engine, err := buildEngine()
 			if err != nil {
