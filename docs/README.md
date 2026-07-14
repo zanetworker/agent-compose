@@ -5,7 +5,8 @@
 | Doc | Description |
 |---|---|
 | [../README.md](../README.md) | Quick start, commands, built-in runtimes |
-| [running-agents.md](running-agents.md) | Step-by-step examples: Claude Code via Vertex, custom agents against vLLM, ADK agents |
+| [tutorial.md](tutorial.md) | Step-by-step tutorial: build, init, dry-run, skills, MCP, inference, named agents, SDK |
+| [running-agents.md](running-agents.md) | Examples: Claude Code via Vertex, custom agents against vLLM |
 
 ## Concepts
 

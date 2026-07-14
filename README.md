@@ -145,6 +145,7 @@ ac doctor                        Validate config and check environment readiness
 
 | Doc | What it covers |
 |---|---|
+| [Tutorial](docs/tutorial.md) | Step-by-step: build, init, skills, MCP, inference, named agents, SDK |
 | [Composition Guide](docs/composition.md) | Config, skills, MCP, named agents, resolution pipeline |
 | [Running Agents](docs/running-agents.md) | Step-by-step examples: Claude Code, custom agents, ADK |
 | [Architecture](docs/architecture.md) | Engine design, resolvers, executor, Go SDK |
