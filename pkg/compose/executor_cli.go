@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+
+	"golang.org/x/term"
 	"sort"
 	"strings"
 	"time"
@@ -81,7 +84,12 @@ func (e *CLIExecutor) UpdatePolicy(ctx context.Context, name string, spec *Resol
 }
 
 func (e *CLIExecutor) ExecInSandbox(ctx context.Context, name string, cmd []string) error {
-	args := append([]string{"sandbox", "exec", "--name", name, "--"}, cmd...)
+	args := []string{"sandbox", "exec", "--name", name}
+	if f, ok := e.stdin.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
+		args = append(args, "--tty")
+	}
+	args = append(args, "--")
+	args = append(args, cmd...)
 	c := exec.CommandContext(ctx, e.binary, args...)
 	c.Stdin = e.stdin
 	c.Stdout = e.stdout
