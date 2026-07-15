@@ -179,6 +179,7 @@ func (r *Resolver) Resolve(ctx context.Context, agent Agent) (*ResolvedSpec, err
 					Source: tmpfile.Name(),
 					Target: mcpCfg.Path,
 				})
+				spec.MCPConfigPath = mcpCfg.Path
 			}
 		}
 	}

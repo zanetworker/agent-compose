@@ -13,7 +13,7 @@ func DefaultConfig() *Config {
 				Entrypoint: []string{"claude"},
 				Tools:      []string{"shell", "file-read", "file-write", "bundle-mcp"},
 				Providers:  []string{"claude-code"},
-				MCPConfig:  MCPConfig{Format: "claude", Path: "/sandbox/.claude.json"},
+				MCPConfig:  MCPConfig{Format: "claude", Path: "/sandbox/.ac-mcp.json"},
 			},
 			"claude-code-vertex": {
 				Kind:  "harness",
@@ -27,7 +27,7 @@ func DefaultConfig() *Config {
 				Entrypoint: []string{"claude"},
 				Tools:      []string{"shell", "file-read", "file-write", "bundle-mcp"},
 				Providers:  []string{"vertex", "gcp"},
-				MCPConfig:  MCPConfig{Format: "claude", Path: "/sandbox/.claude.json"},
+				MCPConfig:  MCPConfig{Format: "claude", Path: "/sandbox/.ac-mcp.json"},
 			},
 			"codex": {
 				Kind:  "harness",

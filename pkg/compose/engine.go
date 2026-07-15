@@ -182,9 +182,12 @@ func (e *Engine) setup(ctx context.Context, name string, opts RunOpts) (string, 
 }
 
 func (e *Engine) buildCmd(spec *ResolvedSpec, opts RunOpts) []string {
-	cmd := spec.Entrypoint
+	cmd := append([]string{}, spec.Entrypoint...)
+	if spec.MCPConfigPath != "" {
+		cmd = append(cmd, "--mcp-config", spec.MCPConfigPath)
+	}
 	if spec.Prompt != "" && spec.RuntimeKind == "harness" {
-		cmd = append(append([]string{}, cmd...), "-p", spec.Prompt)
+		cmd = append(cmd, "-p", spec.Prompt)
 		if opts.SkipPermissions {
 			cmd = append(cmd, "--dangerously-skip-permissions")
 		}
@@ -201,9 +204,12 @@ func (e *Engine) Run(ctx context.Context, name string, opts RunOpts) (*Run, erro
 	defer e.executor.DeleteSandbox(context.Background(), sandboxName)
 
 	if opts.Interactive {
-		cmd := spec.Entrypoint
+		cmd := append([]string{}, spec.Entrypoint...)
+		if spec.MCPConfigPath != "" {
+			cmd = append(cmd, "--mcp-config", spec.MCPConfigPath)
+		}
 		if opts.SkipPermissions && spec.RuntimeKind == "harness" {
-			cmd = append(append([]string{}, cmd...), "--dangerously-skip-permissions")
+			cmd = append(cmd, "--dangerously-skip-permissions")
 		}
 		fmt.Fprintf(e.progress, "Running agent...\n")
 		if err := e.executor.ExecInSandbox(ctx, sandboxName, cmd); err != nil {

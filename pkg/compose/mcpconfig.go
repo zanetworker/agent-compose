@@ -28,14 +28,15 @@ func generateClaudeConfig(servers []ResolvedMCP) ([]byte, error) {
 		Env     map[string]string `json:"env,omitempty"`
 	}
 	type httpServer struct {
-		URL string `json:"url"`
+		Type string `json:"type"`
+		URL  string `json:"url"`
 	}
 
 	mcpServers := make(map[string]interface{}, len(servers))
 	for _, s := range servers {
 		switch s.Type {
 		case "http":
-			mcpServers[s.Name] = httpServer{URL: s.URL}
+			mcpServers[s.Name] = httpServer{Type: "http", URL: s.URL}
 		default:
 			mcpServers[s.Name] = stdioServer{
 				Command: s.Command,

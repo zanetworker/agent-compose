@@ -100,7 +100,8 @@ type ResolvedSpec struct {
 	Tools       []string          `json:"tools"`
 	Sandbox     SandboxOpts       `json:"sandbox"`
 	Prompt      string            `json:"prompt"`
-	MCPServers  []ResolvedMCP     `json:"mcp_servers,omitempty"`
+	MCPServers    []ResolvedMCP   `json:"mcp_servers,omitempty"`
+	MCPConfigPath string         `json:"mcp_config_path,omitempty"`
 	SkillMounts []Mount           `json:"skill_mounts,omitempty"`
 	Workspace   string            `json:"workspace"`
 }
