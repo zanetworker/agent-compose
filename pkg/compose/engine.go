@@ -152,7 +152,7 @@ func (e *Engine) setup(ctx context.Context, name string, opts RunOpts) (string, 
 	if spec.Labels == nil {
 		spec.Labels = make(map[string]string)
 	}
-	spec.Labels["agentctl.io/agent"] = name
+	spec.Labels["agent-compose.io/agent"] = name
 
 	fmt.Fprintf(e.progress, "Creating sandbox %s...\n", sandboxName)
 	if err := e.executor.CreateSandbox(ctx, sandboxName, spec); err != nil {
@@ -275,7 +275,7 @@ func (e *Engine) Stop(ctx context.Context, name string) error {
 }
 
 func (e *Engine) List(ctx context.Context) ([]AgentStatus, error) {
-	sandboxes, err := e.executor.ListSandboxes(ctx, "agentctl.io/agent")
+	sandboxes, err := e.executor.ListSandboxes(ctx, "agent-compose.io/agent")
 	if err != nil {
 		return nil, err
 	}
