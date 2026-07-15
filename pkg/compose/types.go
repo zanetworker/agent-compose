@@ -9,6 +9,7 @@ type RuntimeProfile struct {
 	Tools      []string          `yaml:"tools"`
 	Providers  []string          `yaml:"providers,omitempty"` // OpenShell provider profiles to attach
 	Binaries   []string          `yaml:"binaries,omitempty"` // Full binary paths for egress policy rules
+	MCPConfig  MCPConfig         `yaml:"mcp-config,omitempty"`
 }
 
 type InferenceSpec struct {
@@ -21,9 +22,28 @@ type InferenceSpec struct {
 }
 
 type MCPSpec struct {
-	Name     string   `yaml:"name,omitempty"`
-	Provider string   `yaml:"provider"`
-	Egress   []string `yaml:"egress"`
+	Name     string            `yaml:"name,omitempty"`
+	Type     string            `yaml:"type,omitempty"`    // stdio | http
+	Command  string            `yaml:"command,omitempty"` // binary for stdio servers
+	Args     []string          `yaml:"args,omitempty"`
+	URL      string            `yaml:"url,omitempty"`     // endpoint for http servers
+	Env      map[string]string `yaml:"env,omitempty"`     // env vars for the MCP server process
+	Provider string            `yaml:"provider"`
+	Egress   []string          `yaml:"egress"`
+}
+
+type ResolvedMCP struct {
+	Name    string            `json:"name"`
+	Type    string            `json:"type"`
+	Command string            `json:"command,omitempty"`
+	Args    []string          `json:"args,omitempty"`
+	URL     string            `json:"url,omitempty"`
+	Env     map[string]string `json:"env,omitempty"`
+}
+
+type MCPConfig struct {
+	Format string `yaml:"format,omitempty"` // claude | codex | goose
+	Path   string `yaml:"path,omitempty"`   // target path inside sandbox
 }
 
 type Policy struct {
@@ -80,6 +100,7 @@ type ResolvedSpec struct {
 	Tools       []string          `json:"tools"`
 	Sandbox     SandboxOpts       `json:"sandbox"`
 	Prompt      string            `json:"prompt"`
+	MCPServers  []ResolvedMCP     `json:"mcp_servers,omitempty"`
 	SkillMounts []Mount           `json:"skill_mounts,omitempty"`
 	Workspace   string            `json:"workspace"`
 }

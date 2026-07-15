@@ -42,6 +42,49 @@ func TestConfigMCPResolver_NotFound(t *testing.T) {
 	}
 }
 
+func TestConfigMCPResolver_Resolve_WithConnectionDetails(t *testing.T) {
+	cfg := &Config{
+		MCP: map[string]MCPSpec{
+			"github": {
+				Type:     "stdio",
+				Command:  "github-mcp-server",
+				Env:      map[string]string{"GITHUB_TOKEN": "tok"},
+				Provider: "github-pat",
+				Egress:   []string{"api.github.com:443"},
+			},
+			"jira": {
+				Type:     "http",
+				URL:      "https://jira-mcp.internal:8080",
+				Provider: "jira-oauth",
+				Egress:   []string{"jira-mcp.internal:8080"},
+			},
+		},
+	}
+	r := NewConfigMCPResolver(cfg)
+
+	github, err := r.Resolve(context.Background(), "github")
+	if err != nil {
+		t.Fatalf("Resolve github: %v", err)
+	}
+	if github.Type != "stdio" {
+		t.Errorf("type = %q, want stdio", github.Type)
+	}
+	if github.Command != "github-mcp-server" {
+		t.Errorf("command = %q", github.Command)
+	}
+
+	jira, err := r.Resolve(context.Background(), "jira")
+	if err != nil {
+		t.Fatalf("Resolve jira: %v", err)
+	}
+	if jira.Type != "http" {
+		t.Errorf("type = %q, want http", jira.Type)
+	}
+	if jira.URL != "https://jira-mcp.internal:8080" {
+		t.Errorf("url = %q", jira.URL)
+	}
+}
+
 func TestConfigMCPResolver_List(t *testing.T) {
 	cfg := &Config{
 		MCP: map[string]MCPSpec{

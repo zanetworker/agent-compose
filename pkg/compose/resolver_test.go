@@ -82,6 +82,80 @@ func TestResolver_HarnessAgent(t *testing.T) {
 	}
 }
 
+func TestResolver_MCPConfigGeneration(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.MCP["github"] = MCPSpec{
+		Type:     "stdio",
+		Command:  "github-mcp-server",
+		Env:      map[string]string{"GITHUB_TOKEN": "test-token"},
+		Provider: "github-pat",
+		Egress:   []string{"api.github.com:443"},
+	}
+	cfg.Runtimes["claude-code"] = RuntimeProfile{
+		Kind:       "harness",
+		Image:      "ghcr.io/nvidia/openshell-community/sandboxes/base:latest",
+		EnvMapping: map[string]string{},
+		Entrypoint: []string{"claude"},
+		MCPConfig:  MCPConfig{Format: "claude", Path: "/sandbox/.claude.json"},
+	}
+
+	r := NewResolver(
+		NewConfigRuntimeResolver(cfg),
+		NewConfigInferenceResolver(cfg),
+		NewConfigMCPResolver(cfg),
+		NewLocalSkillResolver(t.TempDir()),
+		NewConfigPolicyResolver(),
+		cfg.Defaults,
+	)
+
+	agent := Agent{Name: "reviewer", Runtime: "claude-code", MCP: []string{"github"}}
+	spec, err := r.Resolve(context.Background(), agent)
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+
+	if len(spec.MCPServers) != 1 {
+		t.Fatalf("MCPServers len = %d, want 1", len(spec.MCPServers))
+	}
+	if spec.MCPServers[0].Name != "github" {
+		t.Errorf("MCPServers[0].Name = %q", spec.MCPServers[0].Name)
+	}
+	if spec.MCPServers[0].Command != "github-mcp-server" {
+		t.Errorf("MCPServers[0].Command = %q", spec.MCPServers[0].Command)
+	}
+
+	found := false
+	for _, m := range spec.SkillMounts {
+		if m.Target == "/sandbox/.claude.json" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected MCP config mount at /sandbox/.claude.json, mounts: %v", spec.SkillMounts)
+	}
+}
+
+func TestResolver_NoMCPConfig_WhenNoServers(t *testing.T) {
+	cfg := DefaultConfig()
+	r := NewResolver(
+		NewConfigRuntimeResolver(cfg),
+		NewConfigInferenceResolver(cfg),
+		NewConfigMCPResolver(cfg),
+		NewLocalSkillResolver(t.TempDir()),
+		NewConfigPolicyResolver(),
+		cfg.Defaults,
+	)
+
+	agent := Agent{Name: "reviewer", Runtime: "claude-code"}
+	spec, err := r.Resolve(context.Background(), agent)
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if len(spec.MCPServers) != 0 {
+		t.Errorf("expected no MCPServers, got %d", len(spec.MCPServers))
+	}
+}
+
 func TestResolver_FrameworkAgent_CustomEnvMapping(t *testing.T) {
 	cfg := testConfig()
 	r := NewResolver(

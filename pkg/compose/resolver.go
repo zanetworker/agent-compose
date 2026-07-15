@@ -3,6 +3,7 @@ package compose
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -138,6 +139,48 @@ func (r *Resolver) Resolve(ctx context.Context, agent Agent) (*ResolvedSpec, err
 			spec.Providers = appendUnique(spec.Providers, mcpSpec.Provider)
 		}
 		spec.Egress = appendUnique(spec.Egress, mcpSpec.Egress...)
+		if mcpSpec.Type != "" {
+			spec.MCPServers = append(spec.MCPServers, ResolvedMCP{
+				Name:    mcpSpec.Name,
+				Type:    mcpSpec.Type,
+				Command: mcpSpec.Command,
+				Args:    mcpSpec.Args,
+				URL:     mcpSpec.URL,
+				Env:     mcpSpec.Env,
+			})
+		}
+	}
+
+	// Generate MCP config file for the runtime
+	if len(spec.MCPServers) > 0 {
+		var mcpCfg MCPConfig
+		if agent.Runtime != "" {
+			if profile, err := r.runtimes.Resolve(ctx, agent.Runtime); err == nil {
+				mcpCfg = profile.MCPConfig
+			}
+		}
+		if mcpCfg.Format != "" && mcpCfg.Path != "" {
+			configData, err := GenerateMCPConfig(spec.MCPServers, mcpCfg.Format)
+			if err != nil {
+				return nil, fmt.Errorf("generating MCP config: %w", err)
+			}
+			if configData != nil {
+				tmpfile, err := os.CreateTemp("", "ac-mcp-config-*")
+				if err != nil {
+					return nil, fmt.Errorf("creating MCP config temp file: %w", err)
+				}
+				if _, err := tmpfile.Write(configData); err != nil {
+					tmpfile.Close()
+					os.Remove(tmpfile.Name())
+					return nil, fmt.Errorf("writing MCP config: %w", err)
+				}
+				tmpfile.Close()
+				spec.SkillMounts = append(spec.SkillMounts, Mount{
+					Source: tmpfile.Name(),
+					Target: mcpCfg.Path,
+				})
+			}
+		}
 	}
 
 	// Assemble prompt

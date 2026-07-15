@@ -13,6 +13,7 @@ func DefaultConfig() *Config {
 				Entrypoint: []string{"claude"},
 				Tools:      []string{"shell", "file-read", "file-write", "bundle-mcp"},
 				Providers:  []string{"claude-code"},
+				MCPConfig:  MCPConfig{Format: "claude", Path: "/sandbox/.claude.json"},
 			},
 			"claude-code-vertex": {
 				Kind:  "harness",
@@ -26,6 +27,7 @@ func DefaultConfig() *Config {
 				Entrypoint: []string{"claude"},
 				Tools:      []string{"shell", "file-read", "file-write", "bundle-mcp"},
 				Providers:  []string{"vertex", "gcp"},
+				MCPConfig:  MCPConfig{Format: "claude", Path: "/sandbox/.claude.json"},
 			},
 			"codex": {
 				Kind:  "harness",
@@ -37,6 +39,7 @@ func DefaultConfig() *Config {
 				Entrypoint: []string{"codex"},
 				Tools:      []string{"shell", "file-read", "file-write"},
 				Providers:  []string{"codex"},
+				MCPConfig:  MCPConfig{Format: "codex", Path: "/sandbox/.codex.json"},
 			},
 			"goose": {
 				Kind:  "harness",
@@ -47,6 +50,7 @@ func DefaultConfig() *Config {
 				},
 				Entrypoint: []string{"goose", "session"},
 				Tools:      []string{"shell", "file-read", "file-write"},
+				MCPConfig:  MCPConfig{Format: "goose", Path: "/sandbox/.config/goose/config.yaml"},
 			},
 		},
 		Inference: make(map[string]InferenceSpec),
