@@ -1,6 +1,6 @@
 # agent-compose
 
-![agent-compose](docs/logo.png)
+![agent-compose](docs/agent-compose-flow.svg)
 
 Declare what an AI agent needs. One command resolves it into a running, governed sandbox.
 

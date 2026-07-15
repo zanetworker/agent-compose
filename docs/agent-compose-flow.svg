@@ -1,0 +1,261 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">
+  <style>
+    :root {
+      --bg: #1a1a1a;
+      --bg-card: #2d2d2d;
+      --bg-item: #3a3a3a;
+      --bg-block: #242424;
+      --accent: #ee0000;
+      --accent-dark: #a30000;
+      --accent-light: #ff6b6b;
+      --text-primary: #e0e0e0;
+      --text-secondary: #a3a3a3;
+      --text-muted: #6b6b6b;
+      --border-card: #404040;
+      --border-block: #4d4d4d;
+      --col-divider: #333333;
+      --flow-stroke: #a30000;
+      --flow-dot: #ee0000;
+      --conn-opacity: 0.6;
+      --teal: #37a3a3;
+      --purple: #5e40be;
+      --orange: #f5921b;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f5f5f5;
+        --bg-card: #ffffff;
+        --bg-item: #f0f0f0;
+        --bg-block: #fafafa;
+        --accent: #cc0000;
+        --accent-dark: #a30000;
+        --accent-light: #a30000;
+        --text-primary: #151515;
+        --text-secondary: #4d4d4d;
+        --text-muted: #6b6b6b;
+        --border-card: #d2d2d2;
+        --border-block: #d2d2d2;
+        --col-divider: #d2d2d2;
+        --flow-stroke: #a30000;
+        --flow-dot: #cc0000;
+        --conn-opacity: 0.7;
+      }
+    }
+  </style>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.2"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="arrow-red" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="var(--accent)"/>
+    </marker>
+    <marker id="arrow-teal" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="var(--teal)"/>
+    </marker>
+
+    <!-- Connection paths -->
+    <path id="p-runtime" d="M 275,120 L 390,200" fill="none"/>
+    <path id="p-inference" d="M 275,170 L 390,220" fill="none"/>
+    <path id="p-mcp" d="M 275,220 L 390,240" fill="none"/>
+    <path id="p-skills" d="M 275,270 L 390,260" fill="none"/>
+    <path id="p-prompt" d="M 275,320 L 390,280" fill="none"/>
+    <path id="p-resolve" d="M 570,240 L 660,180" fill="none"/>
+    <path id="p-policy" d="M 570,260 L 660,280" fill="none"/>
+    <path id="p-creds" d="M 570,250 L 660,370" fill="none"/>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="520" fill="var(--bg)"/>
+
+  <!-- Title -->
+  <text x="480" y="35" text-anchor="middle" fill="var(--text-primary)" font-size="18" font-weight="700">agent-compose</text>
+  <text x="480" y="52" text-anchor="middle" fill="var(--text-muted)" font-size="11" font-style="italic">Declare, Resolve, Run</text>
+
+  <!-- Column labels -->
+  <text x="165" y="78" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-weight="700" letter-spacing="1.5">DECLARE</text>
+  <text x="480" y="78" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-weight="700" letter-spacing="1.5">RESOLVE</text>
+  <text x="790" y="78" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-weight="700" letter-spacing="1.5">RUN</text>
+
+  <!-- Column dividers -->
+  <line x1="330" y1="70" x2="330" y2="460" stroke="var(--col-divider)" stroke-width="1" opacity="0.3"/>
+  <line x1="630" y1="70" x2="630" y2="460" stroke="var(--col-divider)" stroke-width="1" opacity="0.3"/>
+
+  <!-- ==================== COLUMN 1: DECLARE ==================== -->
+
+  <!-- Runtime card -->
+  <rect x="55" y="100" width="220" height="36" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+  <circle cx="75" cy="118" r="6" fill="var(--accent)" opacity="0.8"/>
+  <text x="90" y="123" fill="var(--text-primary)" font-size="12" font-weight="600">Runtime</text>
+  <text x="255" y="123" text-anchor="end" fill="var(--text-secondary)" font-size="9">claude, codex, goose, adk</text>
+
+  <!-- Inference card -->
+  <rect x="55" y="150" width="220" height="36" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+  <circle cx="75" cy="168" r="6" fill="var(--teal)" opacity="0.8"/>
+  <text x="90" y="173" fill="var(--text-primary)" font-size="12" font-weight="600">Inference</text>
+  <text x="255" y="173" text-anchor="end" fill="var(--text-secondary)" font-size="9">vertex, vllm, bedrock</text>
+
+  <!-- MCP card -->
+  <rect x="55" y="200" width="220" height="36" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+  <circle cx="75" cy="218" r="6" fill="var(--purple)" opacity="0.8"/>
+  <text x="90" y="223" fill="var(--text-primary)" font-size="12" font-weight="600">MCP Servers</text>
+  <text x="255" y="223" text-anchor="end" fill="var(--text-secondary)" font-size="9">github, sentry, slack</text>
+
+  <!-- Skills card -->
+  <rect x="55" y="250" width="220" height="36" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+  <circle cx="75" cy="268" r="6" fill="var(--orange)" opacity="0.8"/>
+  <text x="90" y="273" fill="var(--text-primary)" font-size="12" font-weight="600">Skills</text>
+  <text x="255" y="273" text-anchor="end" fill="var(--text-secondary)" font-size="9">prompts + reference files</text>
+
+  <!-- Prompt card -->
+  <rect x="55" y="300" width="220" height="36" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.5" rx="6" filter="url(#shadow)"/>
+  <circle cx="75" cy="318" r="6" fill="#a3a3a3" opacity="0.8"/>
+  <text x="90" y="323" fill="var(--text-primary)" font-size="12" font-weight="600">Prompt</text>
+  <text x="255" y="323" text-anchor="end" fill="var(--text-secondary)" font-size="9">task instructions</text>
+
+  <!-- config.yaml label -->
+  <rect x="95" y="355" width="140" height="24" fill="var(--bg-block)" stroke="var(--border-card)" stroke-width="0.5" rx="3"/>
+  <text x="165" y="371" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-weight="600" letter-spacing="0.5">~/.ac/config.yaml</text>
+
+  <!-- ==================== COLUMN 2: RESOLVE ==================== -->
+
+  <!-- Resolver engine card -->
+  <rect x="380" y="140" width="200" height="200" fill="var(--bg-card)" stroke="var(--accent)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <rect x="380" y="140" width="200" height="32" fill="var(--accent)" rx="6"/>
+  <rect x="380" y="156" width="200" height="16" fill="var(--accent)"/>
+  <text x="480" y="160" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">Resolver Engine</text>
+
+  <!-- Resolver sub-items -->
+  <rect x="395" y="185" width="170" height="24" fill="var(--bg-item)" stroke="var(--border-card)" stroke-width="0.5" rx="3"/>
+  <text x="480" y="201" text-anchor="middle" fill="var(--text-secondary)" font-size="10">Env-mapping expansion</text>
+
+  <rect x="395" y="215" width="170" height="24" fill="var(--bg-item)" stroke="var(--border-card)" stroke-width="0.5" rx="3"/>
+  <text x="480" y="231" text-anchor="middle" fill="var(--text-secondary)" font-size="10">MCP config generation</text>
+
+  <rect x="395" y="245" width="170" height="24" fill="var(--bg-item)" stroke="var(--border-card)" stroke-width="0.5" rx="3"/>
+  <text x="480" y="261" text-anchor="middle" fill="var(--text-secondary)" font-size="10">Provider + egress merge</text>
+
+  <rect x="395" y="275" width="170" height="24" fill="var(--bg-item)" stroke="var(--border-card)" stroke-width="0.5" rx="3"/>
+  <text x="480" y="291" text-anchor="middle" fill="var(--text-secondary)" font-size="10">Prompt + skill assembly</text>
+
+  <!-- Orbiting dots around resolver -->
+  <circle cx="510" cy="155" r="3" fill="var(--accent-light)" opacity="0.5">
+    <animateTransform attributeName="transform" type="rotate" from="0 480 240" to="360 480 240" dur="12s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="450" cy="325" r="2.5" fill="var(--teal)" opacity="0.4">
+    <animateTransform attributeName="transform" type="rotate" from="360 480 240" to="0 480 240" dur="18s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ResolvedSpec output label -->
+  <rect x="410" y="355" width="140" height="24" fill="var(--bg-block)" stroke="var(--border-card)" stroke-width="0.5" rx="3"/>
+  <text x="480" y="371" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-weight="600" letter-spacing="0.5">ResolvedSpec</text>
+
+  <!-- ==================== COLUMN 3: RUN ==================== -->
+
+  <!-- Sandbox outer card -->
+  <rect x="660" y="95" width="250" height="310" fill="var(--bg-card)" stroke="var(--teal)" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <rect x="660" y="95" width="250" height="32" fill="var(--teal)" rx="6"/>
+  <rect x="660" y="111" width="250" height="16" fill="var(--teal)"/>
+  <text x="785" y="115" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">OpenShell Sandbox</text>
+
+  <!-- Agent process -->
+  <rect x="680" y="140" width="210" height="50" fill="var(--bg-item)" stroke="var(--accent)" stroke-width="1.5" rx="4"/>
+  <text x="785" y="162" text-anchor="middle" fill="var(--text-primary)" font-size="12" font-weight="600">Agent Process</text>
+  <text x="785" y="178" text-anchor="middle" fill="var(--text-secondary)" font-size="9">claude / python / codex</text>
+
+  <!-- Heartbeat on agent process -->
+  <rect x="868" y="148" width="14" height="14" rx="7" fill="var(--accent)" opacity="0.6">
+    <animate attributeName="opacity" values="0.3;0.8;0.3" dur="1.3s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- MCP Config -->
+  <rect x="680" y="200" width="100" height="30" fill="var(--bg-block)" stroke="var(--purple)" stroke-width="1" rx="3"/>
+  <text x="730" y="219" text-anchor="middle" fill="var(--text-secondary)" font-size="9">MCP Config</text>
+
+  <!-- Env Vars -->
+  <rect x="790" y="200" width="100" height="30" fill="var(--bg-block)" stroke="var(--teal)" stroke-width="1" rx="3"/>
+  <text x="840" y="219" text-anchor="middle" fill="var(--text-secondary)" font-size="9">Env Vars</text>
+
+  <!-- Egress policy -->
+  <rect x="680" y="248" width="210" height="45" fill="var(--bg-block)" stroke="var(--orange)" stroke-width="1" rx="4"/>
+  <text x="785" y="266" text-anchor="middle" fill="var(--text-primary)" font-size="10" font-weight="600">Egress Policy</text>
+  <text x="785" y="282" text-anchor="middle" fill="var(--text-secondary)" font-size="9">deny-by-default, per-endpoint allow</text>
+
+  <!-- Credential isolation -->
+  <rect x="680" y="303" width="210" height="45" fill="var(--bg-block)" stroke="var(--accent-dark)" stroke-width="1" rx="4"/>
+  <text x="785" y="321" text-anchor="middle" fill="var(--text-primary)" font-size="10" font-weight="600">Credential Isolation</text>
+  <text x="785" y="337" text-anchor="middle" fill="var(--text-secondary)" font-size="9">proxy-injected, never in agent env</text>
+
+  <!-- Security boundary dashed line -->
+  <rect x="655" y="90" width="260" height="320" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="8 6" rx="8" opacity="0.3"/>
+
+  <!-- Sandbox label -->
+  <rect x="715" y="380" width="140" height="24" fill="var(--bg-block)" stroke="var(--border-card)" stroke-width="0.5" rx="3"/>
+  <text x="785" y="396" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-weight="600" letter-spacing="0.5">Governed Sandbox</text>
+
+  <!-- ==================== CONNECTIONS ==================== -->
+
+  <!-- Declare → Resolve -->
+  <path d="M 275,118 L 380,200" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="4,3" fill="none" opacity="var(--conn-opacity)" marker-end="url(#arrow-red)"/>
+  <path d="M 275,168 L 380,220" stroke="var(--teal)" stroke-width="2.5" stroke-dasharray="4,3" fill="none" opacity="var(--conn-opacity)" marker-end="url(#arrow-teal)"/>
+  <path id="path-mcp" d="M 275,218 L 380,240" stroke="var(--purple)" stroke-width="2.5" stroke-dasharray="4,3" fill="none" opacity="var(--conn-opacity)"/>
+  <path d="M 275,268 L 380,260" stroke="var(--orange)" stroke-width="2.5" stroke-dasharray="4,3" fill="none" opacity="var(--conn-opacity)"/>
+  <path d="M 275,318 L 380,280" stroke="#a3a3a3" stroke-width="2.5" stroke-dasharray="4,3" fill="none" opacity="var(--conn-opacity)"/>
+
+  <!-- Resolve → Run -->
+  <path id="path-to-agent" d="M 580,190 L 680,165" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="4,3" fill="none" opacity="var(--conn-opacity)" marker-end="url(#arrow-red)"/>
+  <path id="path-to-policy" d="M 580,260 L 680,270" stroke="var(--orange)" stroke-width="2.5" stroke-dasharray="4,3" fill="none" opacity="var(--conn-opacity)"/>
+  <path id="path-to-creds" d="M 580,280 L 680,325" stroke="var(--accent-dark)" stroke-width="2.5" stroke-dasharray="4,3" fill="none" opacity="var(--conn-opacity)"/>
+
+  <!-- ==================== ANIMATED DOTS ==================== -->
+
+  <!-- Declare → Resolve dots -->
+  <circle r="4" fill="var(--accent)" opacity="0.9">
+    <animateMotion dur="1.6s" repeatCount="indefinite" begin="0s"><mpath href="#p-runtime"/></animateMotion>
+  </circle>
+  <circle r="4" fill="var(--teal)" opacity="0.9">
+    <animateMotion dur="1.6s" repeatCount="indefinite" begin="0.3s"><mpath href="#p-inference"/></animateMotion>
+  </circle>
+  <circle r="4" fill="var(--purple)" opacity="0.9">
+    <animateMotion dur="1.6s" repeatCount="indefinite" begin="0.6s"><mpath href="#p-mcp"/></animateMotion>
+  </circle>
+  <circle r="4" fill="var(--orange)" opacity="0.9">
+    <animateMotion dur="1.6s" repeatCount="indefinite" begin="0.9s"><mpath href="#p-skills"/></animateMotion>
+  </circle>
+  <circle r="4" fill="#a3a3a3" opacity="0.9">
+    <animateMotion dur="1.6s" repeatCount="indefinite" begin="1.2s"><mpath href="#p-prompt"/></animateMotion>
+  </circle>
+
+  <!-- Resolve → Run dots -->
+  <circle r="4" fill="var(--accent)" opacity="0.9">
+    <animateMotion dur="1.4s" repeatCount="indefinite" begin="0.2s"><mpath href="#p-resolve"/></animateMotion>
+  </circle>
+  <circle r="4" fill="var(--orange)" opacity="0.7">
+    <animateMotion dur="1.4s" repeatCount="indefinite" begin="0.6s"><mpath href="#p-policy"/></animateMotion>
+  </circle>
+  <circle r="4" fill="var(--accent-dark)" opacity="0.7">
+    <animateMotion dur="1.4s" repeatCount="indefinite" begin="1.0s"><mpath href="#p-creds"/></animateMotion>
+  </circle>
+
+  <!-- ==================== LEGEND ==================== -->
+  <g transform="translate(180, 430)">
+    <rect x="0" y="0" width="600" height="30" rx="6" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1"/>
+    <circle cx="20" cy="15" r="5" fill="var(--accent)"/>
+    <text x="32" y="19" fill="var(--text-secondary)" font-size="9" font-weight="500">Runtime</text>
+    <circle cx="110" cy="15" r="5" fill="var(--teal)"/>
+    <text x="122" y="19" fill="var(--text-secondary)" font-size="9" font-weight="500">Inference</text>
+    <circle cx="210" cy="15" r="5" fill="var(--purple)"/>
+    <text x="222" y="19" fill="var(--text-secondary)" font-size="9" font-weight="500">MCP</text>
+    <circle cx="280" cy="15" r="5" fill="var(--orange)"/>
+    <text x="292" y="19" fill="var(--text-secondary)" font-size="9" font-weight="500">Skills / Policy</text>
+    <rect x="400" y="8" width="14" height="14" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.7">
+      <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" repeatCount="indefinite"/>
+    </rect>
+    <text x="420" y="19" fill="var(--text-secondary)" font-size="9" font-weight="500">Security boundary</text>
+  </g>
+
+  <!-- Tagline -->
+  <text x="480" y="490" text-anchor="middle" fill="var(--text-muted)" font-size="10" font-style="italic">One command from zero to running, governed agent</text>
+</svg>
