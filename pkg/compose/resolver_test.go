@@ -96,7 +96,7 @@ func TestResolver_MCPConfigGeneration(t *testing.T) {
 		Image:      "ghcr.io/nvidia/openshell-community/sandboxes/base:latest",
 		EnvMapping: map[string]string{},
 		Entrypoint: []string{"claude"},
-		MCPConfig:  MCPConfig{Format: "claude", Path: "/sandbox/.claude.json"},
+		MCPConfig:  MCPConfig{Format: "claude", Path: "/sandbox/.ac-mcp.json"},
 	}
 
 	r := NewResolver(
@@ -126,12 +126,12 @@ func TestResolver_MCPConfigGeneration(t *testing.T) {
 
 	found := false
 	for _, m := range spec.SkillMounts {
-		if m.Target == "/sandbox/.claude.json" {
+		if m.Target == "/sandbox/.ac-mcp.json" {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("expected MCP config mount at /sandbox/.claude.json, mounts: %v", spec.SkillMounts)
+		t.Errorf("expected MCP config mount at /sandbox/.ac-mcp.json, mounts: %v", spec.SkillMounts)
 	}
 }
 

@@ -39,3 +39,9 @@ Validated gaps in OpenShell with evidence and workarounds.
 |---|---|---|
 | [001](upstream-issues/001-metadata-emulator-not-running.md) | GCE metadata emulator not running with vertex provider | All GCP SDK consumers can't get credentials inside sandboxes |
 | [002](upstream-issues/002-provider-env-vars-not-injected.md) | Provider `env_vars` not injected as sandbox env vars | CLI tools that check auth locally (gh, aws, gcloud) fail |
+
+## Project Status
+
+| Doc | Description |
+|---|---|
+| [status-and-next.md](status-and-next.md) | What's done, what's not, priority order for next work |
