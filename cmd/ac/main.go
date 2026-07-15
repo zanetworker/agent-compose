@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+
 	"github.com/zanetworker/agent-compose/pkg/compose"
 )
 
@@ -35,6 +36,8 @@ func main() {
 
 	root.AddCommand(initCmd())
 	root.AddCommand(runCmd())
+	root.AddCommand(startCmd())
+	root.AddCommand(attachCmd())
 	root.AddCommand(stopCmd())
 	root.AddCommand(listCmd())
 	root.AddCommand(logsCmd())
@@ -43,6 +46,11 @@ func main() {
 	root.AddCommand(doctorCmd())
 
 	if err := root.Execute(); err != nil {
+		var exitErr *compose.ExitError
+		if errors.As(err, &exitErr) {
+			os.Exit(exitErr.Code)
+		}
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
@@ -61,12 +69,13 @@ func buildEngine() (*compose.Engine, error) {
 	if dryRun {
 		executor = compose.NewDryRunExecutor(os.Stdout)
 	} else {
-		executor = compose.NewCLIExecutor("openshell")
+		executor = compose.NewCLIExecutor("openshell", os.Stdin, os.Stdout, os.Stderr)
 	}
 
 	return compose.New(
 		compose.WithConfig(cfg),
 		compose.WithExecutor(executor),
 		compose.WithSkillsDir(skillsDir),
+		compose.WithProgress(os.Stderr),
 	), nil
 }

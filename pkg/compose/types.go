@@ -8,6 +8,7 @@ type RuntimeProfile struct {
 	Entrypoint []string          `yaml:"entrypoint"`
 	Tools      []string          `yaml:"tools"`
 	Providers  []string          `yaml:"providers,omitempty"` // OpenShell provider profiles to attach
+	Binaries   []string          `yaml:"binaries,omitempty"` // Full binary paths for egress policy rules
 }
 
 type InferenceSpec struct {
@@ -71,6 +72,7 @@ type ResolvedSpec struct {
 	RuntimeKind string            `json:"runtime_kind"` // harness | framework | raw
 	Image       string            `json:"image"`
 	Entrypoint  []string          `json:"entrypoint"`
+	Binaries    []string          `json:"binaries,omitempty"` // Full binary paths for egress policy rules
 	Providers   []string          `json:"providers"`
 	Env         map[string]string `json:"env"`
 	Egress      []string          `json:"egress"`
@@ -80,6 +82,23 @@ type ResolvedSpec struct {
 	Prompt      string            `json:"prompt"`
 	SkillMounts []Mount           `json:"skill_mounts,omitempty"`
 	Workspace   string            `json:"workspace"`
+}
+
+type AttachOpts struct {
+	Shell bool
+}
+
+type ExitError struct {
+	Code int
+	Err  error
+}
+
+func (e *ExitError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *ExitError) Unwrap() error {
+	return e.Err
 }
 
 type SandboxState string

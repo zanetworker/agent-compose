@@ -1,5 +1,7 @@
 package compose
 
+import "io"
+
 type Option func(*Engine)
 
 func WithConfig(cfg *Config) Option {
@@ -35,5 +37,11 @@ func WithInferenceResolver(r InferenceResolver) Option {
 func WithMCPResolver(r MCPResolver) Option {
 	return func(e *Engine) {
 		e.mcpOverride = r
+	}
+}
+
+func WithProgress(w io.Writer) Option {
+	return func(e *Engine) {
+		e.progress = w
 	}
 }

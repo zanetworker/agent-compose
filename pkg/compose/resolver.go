@@ -57,6 +57,7 @@ func (r *Resolver) Resolve(ctx context.Context, agent Agent) (*ResolvedSpec, err
 		}
 		spec.Image = profile.Image
 		spec.Entrypoint = profile.Entrypoint
+		spec.Binaries = profile.Binaries
 		spec.Tools = profile.Tools
 		spec.RuntimeKind = profile.Kind
 		spec.Providers = appendUnique(spec.Providers, profile.Providers...)
@@ -174,7 +175,7 @@ func (r *Resolver) Resolve(ctx context.Context, agent Agent) (*ResolvedSpec, err
 	// into sandbox policy yet (upstream OpenShell #896). Remove once fixed.
 	for _, p := range spec.Providers {
 		switch p {
-		case "google-vertex-ai":
+		case "vertex", "google-vertex-ai":
 			for _, region := range []string{"us-east5", "us-central1", "europe-west4"} {
 				spec.Egress = appendUnique(spec.Egress, region+"-aiplatform.googleapis.com:443")
 			}

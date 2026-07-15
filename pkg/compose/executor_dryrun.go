@@ -68,8 +68,8 @@ func (e *DryRunExecutor) UpdatePolicy(_ context.Context, name string, spec *Reso
 	for _, endpoint := range spec.Egress {
 		args = append(args, "--add-endpoint", endpoint+":read-write:rest:enforce")
 	}
-	if len(spec.Entrypoint) > 0 {
-		args = append(args, "--binary", spec.Entrypoint[0])
+	for _, bin := range spec.Binaries {
+		args = append(args, "--binary", bin)
 	}
 	fmt.Fprintln(e.out, strings.Join(args, " "))
 	return nil

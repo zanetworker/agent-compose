@@ -3,9 +3,9 @@ package compose
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -14,10 +14,13 @@ import (
 
 type CLIExecutor struct {
 	binary string
+	stdin  io.Reader
+	stdout io.Writer
+	stderr io.Writer
 }
 
-func NewCLIExecutor(binary string) *CLIExecutor {
-	return &CLIExecutor{binary: binary}
+func NewCLIExecutor(binary string, stdin io.Reader, stdout, stderr io.Writer) *CLIExecutor {
+	return &CLIExecutor{binary: binary, stdin: stdin, stdout: stdout, stderr: stderr}
 }
 
 func (e *CLIExecutor) BinaryPath() string {
@@ -66,8 +69,8 @@ func (e *CLIExecutor) UpdatePolicy(ctx context.Context, name string, spec *Resol
 	for _, endpoint := range spec.Egress {
 		args = append(args, "--add-endpoint", endpoint+":read-write:rest:enforce")
 	}
-	if len(spec.Entrypoint) > 0 {
-		args = append(args, "--binary", spec.Entrypoint[0])
+	for _, bin := range spec.Binaries {
+		args = append(args, "--binary", bin)
 	}
 	if err := e.run(ctx, args...); err != nil {
 		return err
@@ -79,14 +82,25 @@ func (e *CLIExecutor) UpdatePolicy(ctx context.Context, name string, spec *Resol
 
 func (e *CLIExecutor) ExecInSandbox(ctx context.Context, name string, cmd []string) error {
 	args := append([]string{"sandbox", "exec", "--name", name, "--"}, cmd...)
-	return e.run(ctx, args...)
+	c := exec.CommandContext(ctx, e.binary, args...)
+	c.Stdin = e.stdin
+	c.Stdout = e.stdout
+	c.Stderr = e.stderr
+	if err := c.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return &ExitError{Code: exitErr.ExitCode(), Err: err}
+		}
+		return err
+	}
+	return nil
 }
 
 func (e *CLIExecutor) ConnectSandbox(ctx context.Context, name string) error {
 	cmd := exec.CommandContext(ctx, e.binary, "sandbox", "connect", name)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdin = e.stdin
+	cmd.Stdout = e.stdout
+	cmd.Stderr = e.stderr
 	return cmd.Run()
 }
 
@@ -158,17 +172,17 @@ func (e *CLIExecutor) run(ctx context.Context, args ...string) error {
 	if err := cmd.Run(); err != nil {
 		out := strings.TrimSpace(stdout.String())
 		errOut := strings.TrimSpace(stderr.String())
-		msg := fmt.Sprintf("%s %s: %w", e.binary, strings.Join(args, " "), err)
+		msg := fmt.Sprintf("%s %s", e.binary, strings.Join(args, " "))
 		if errOut != "" {
 			msg += "\nstderr: " + errOut
 		}
 		if out != "" {
 			msg += "\nstdout: " + out
 		}
-		return fmt.Errorf("%s", msg)
+		return fmt.Errorf("%s: %w", msg, err)
 	}
 	if out := strings.TrimSpace(stdout.String()); out != "" {
-		fmt.Println(out)
+		fmt.Fprintln(e.stdout, out)
 	}
 	return nil
 }

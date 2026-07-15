@@ -7,7 +7,7 @@ import (
 	"github.com/zanetworker/agent-compose/pkg/compose"
 )
 
-func runCmd() *cobra.Command {
+func startCmd() *cobra.Command {
 	var (
 		prompt          string
 		workspace       string
@@ -15,14 +15,13 @@ func runCmd() *cobra.Command {
 		inference       string
 		model           string
 		skipPermissions bool
-		interactive     bool
 		mcp             []string
 		skills          []string
 	)
 
 	cmd := &cobra.Command{
-		Use:   "run [agent-name]",
-		Short: "Resolve agent config, create sandbox, and start agent",
+		Use:   "start [agent-name]",
+		Short: "Start agent in background, returns sandbox name",
 		Args:          cobra.MaximumNArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -38,7 +37,6 @@ func runCmd() *cobra.Command {
 				Inference:       inference,
 				Model:           model,
 				SkipPermissions: skipPermissions,
-				Interactive:     interactive,
 			}
 
 			if len(args) == 0 {
@@ -60,8 +58,14 @@ func runCmd() *cobra.Command {
 				name = args[0]
 			}
 
-			_, err = engine.Run(cmd.Context(), name, opts)
-			return err
+			run, err := engine.Start(cmd.Context(), name, opts)
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("Agent %s started in sandbox %s\n", run.Agent, run.Sandbox)
+			fmt.Printf("\n  ac logs   %s\n  ac attach %s\n  ac stop   %s\n", run.Sandbox, run.Sandbox, run.Sandbox)
+			return nil
 		},
 	}
 
@@ -70,8 +74,7 @@ func runCmd() *cobra.Command {
 	cmd.Flags().StringVar(&runtime, "runtime", "", "runtime profile (for inline agents)")
 	cmd.Flags().StringVar(&inference, "inference", "", "override inference provider")
 	cmd.Flags().StringVar(&model, "model", "", "override model")
-	cmd.Flags().BoolVar(&skipPermissions, "skip-permissions", false, "skip agent permission prompts (use with caution)")
-	cmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "attach an interactive terminal to the sandbox")
+	cmd.Flags().BoolVar(&skipPermissions, "skip-permissions", false, "skip agent permission prompts")
 	cmd.Flags().StringSliceVar(&mcp, "mcp", nil, "MCP servers")
 	cmd.Flags().StringSliceVar(&skills, "skills", nil, "skills")
 

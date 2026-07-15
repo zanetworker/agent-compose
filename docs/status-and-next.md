@@ -44,45 +44,30 @@
 - [x] Identified: #896 (provider endpoint composition) OPEN, workaround in place
 - [x] Identified: #1740 (upload creates directory) OPEN
 - [x] Identified: #1706 (metadata emulator) CLOSED/FIXED
+- [x] Resolved: CONNECT policy denial was misconfiguration, not upstream bug (#2272 CLOSED)
+  - Policy `--binary` needs full paths (e.g., `/usr/local/bin/claude`, `/usr/bin/node`)
+  - `OPENSHELL_GATEWAY_INSECURE=true` skips mTLS client certs; must be unset for mTLS gateways
+  - Added `binaries` field to RuntimeProfile to declare full paths for egress policy rules
 
 ## What's Not Done
 
 ### P0: UX (blocks real usage)
 
-**1. Stream agent output to user.**
-`ac run` captures stdout but doesn't print it. The user sees "Created sandbox" and "Deleted sandbox" but never sees what the agent said. Fix: `ExecInSandbox` should stream stdout/stderr to the terminal in real-time, not capture into a buffer.
+**1. ~~Stream agent output to user.~~** DONE.
+`ExecInSandbox` streams stdout/stderr directly to injected writers. `CLIExecutor` takes `stdin io.Reader, stdout, stderr io.Writer` at construction. `ConnectSandbox` and `run()` also use injected writers. No hardcoded `os.Stdout/Stderr/Stdin` in `pkg/compose/`. SDK-ready.
 
-Files: `pkg/compose/executor_cli.go` (ExecInSandbox should use cmd.Stdout = os.Stdout, cmd.Stderr = os.Stderr instead of capturing), `cmd/ac/run.go` (print agent output).
+**2. ~~Progress indicators.~~** DONE.
+`Engine` has `progress io.Writer` (via `WithProgress`, defaults to `io.Discard`). `Run()` emits to stderr: "Creating sandbox X..." then "Updating egress policy..." (conditional) then "Running agent...".
 
-**2. Progress indicators.**
-Currently silent during: sandbox provisioning (30-60s), policy update (instant), policy propagation wait (12s), agent execution. User sees nothing.
+**3. ~~Async run + attach.~~** PARTIALLY DONE.
+`ac attach <name>` connects to a running sandbox via `openshell sandbox connect`. Validates sandbox exists first (returns ErrNotFound if not running). Async run (splitting Run into CreateAgent+ExecAgent) is not yet implemented.
 
-Print: "Creating sandbox..." → "Updating egress policy..." → "Waiting for policy propagation (12s)..." → "Running agent..." → output → "Done."
-
-Files: `pkg/compose/executor_cli.go` (add fmt.Fprintf to stderr for progress), `pkg/compose/engine.go` (add progress callbacks or just print to stderr).
-
-**3. Async run + attach.**
-`ac run` blocks for the entire lifecycle (create + policy + wait + exec). Should return the sandbox name immediately and let the user attach later.
-
-```
-ac run security-reviewer --workspace ./repo
-# → Created sandbox security-reviewer-1784045591. Use ac attach to connect.
-
-ac attach security-reviewer-1784045591          # connects to harness (claude)
-ac attach security-reviewer-1784045591 --shell  # raw shell for debugging
-ac logs security-reviewer-1784045591            # stream output
-ac stop security-reviewer-1784045591            # cleanup
-```
-
-Files: new `cmd/ac/attach.go`, modify `cmd/ac/run.go` (default to async, add --wait for synchronous), modify `pkg/compose/engine.go` (split Run into CreateAgent + ExecAgent).
-
-**4. Clean exit codes.**
-Agent success/failure should propagate as exit codes. Currently all errors are exit 1 with cobra error text.
+**4. ~~Clean exit codes.~~** DONE.
+`ExitError` type wraps subprocess exit codes. `CLIExecutor.ExecInSandbox` extracts exit codes from `exec.ExitError`. `Engine.Run` propagates `ExitError` through error wrapping. `main.go` extracts the code via `errors.As` and calls `os.Exit(code)` instead of always `os.Exit(1)`.
 
 ### P1: Correctness
 
-**5. ExecInSandbox stdout should stream, not buffer.**
-Currently `e.run()` captures all output into bytes.Buffer and only shows it on error. For agent execution, output should stream in real-time. The `run()` helper needs a streaming variant.
+**5. ~~ExecInSandbox stdout should stream, not buffer.~~** DONE (see #1).
 
 **6. Policy delay should be configurable or eliminated.**
 The 12s sleep is a hack. Better: poll `openshell policy get <name>` until the new version is active, with a timeout.
@@ -92,14 +77,14 @@ Runtime profiles declare provider instance names (vertex, gcp, claude-code). If 
 
 ### P2: Features
 
-**8. ac attach command.**
-`ac attach <name>` calls `openshell sandbox exec --name <name> -- <entrypoint>` (connects to the harness). `ac attach <name> --shell` calls `openshell sandbox connect <name>` (raw shell). The engine stores the entrypoint in sandbox labels so attach knows what to run.
+**8. ~~ac attach command.~~** DONE (basic).
+`ac attach <name>` connects to a running sandbox shell. Validates sandbox exists. Future: store entrypoint in labels to support harness-specific attach (re-enter Claude vs raw shell).
 
 **9. Named agent config files.**
 Currently agents are defined in config.yaml's `agents:` section. Support separate files: `agents/security-reviewer.yaml` that ac discovers automatically.
 
-**10. ac run should print the sandbox name.**
-Even in sync mode, print the sandbox name so the user can ac logs / ac attach / ac stop in another terminal.
+**10. ~~ac run should print the sandbox name.~~** DONE.
+Progress message "Creating sandbox X..." prints the sandbox name to stderr immediately after it's computed, before creation starts. User can `ac logs` / `ac stop` from another terminal.
 
 **11. Governance basics.**
 Add a `policy:` field to agent config for custom sandbox policies beyond the auto-generated egress rules.
@@ -124,8 +109,12 @@ chaitin/agent-compose exists (200 stars, AGPL). If this goes public, rename.
 
 ## Recommended Priority for Next Session
 
-1. Stream agent output (P0 #1 + #5) - makes ac run usable
-2. Progress indicators (P0 #2) - user knows what's happening  
-3. Print sandbox name (P2 #10) - user can ac logs in another terminal
-4. ac attach (P0 #3 + P2 #8) - async workflow
-5. Clean exit codes (P0 #4) - CI/CD usage
+1. ~~Stream agent output (P0 #1 + #5) - makes ac run usable~~ DONE
+2. ~~Progress indicators (P0 #2) - user knows what's happening~~ DONE
+3. ~~Print sandbox name (P2 #10) - user can ac logs in another terminal~~ DONE
+4. ~~ac attach (P0 #3 + P2 #8) - basic attach~~ DONE
+5. ~~Clean exit codes (P0 #4) - CI/CD usage~~ DONE
+6. Async run (split Engine.Run into CreateAgent + ExecAgent)
+7. Policy delay elimination (P1 #6)
+8. Named agent config files (P2 #9)
+9. Crafted-code audit fixes (P3 #12)
