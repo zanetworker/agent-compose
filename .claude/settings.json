@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git push:*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/azaalouk/go/src/github.com/zanetworker/agent-compose && go test ./... -count=1 > /tmp/ac-precommit.log 2>&1 || (echo 'BLOCK: Tests failed. Run go test ./... to see failures.' && cat /tmp/ac-precommit.log | tail -20 && exit 1)",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

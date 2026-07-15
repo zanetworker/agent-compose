@@ -1,0 +1,11 @@
+#!/bin/sh
+# Pre-push hook: run all tests including examples before pushing.
+# Install: git config core.hooksPath .githooks
+
+echo "Running tests before push..."
+if ! go test ./... -count=1 > /tmp/ac-prepush.log 2>&1; then
+    echo "Push blocked: tests failed."
+    tail -20 /tmp/ac-prepush.log
+    exit 1
+fi
+echo "All tests pass."
