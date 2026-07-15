@@ -8,7 +8,14 @@ Declare what an AI agent needs. One command resolves it into a running, governed
 ac run security-reviewer --workspace ./repo
 ```
 
-The engine picks the runtime, attaches inference credentials, connects MCP servers, injects skill prompts, creates the sandbox, and cleans up when done. You configure once, run everywhere.
+## Why
+
+- **One command from zero to running agent.** `ac run` handles sandbox creation, credentials, egress policy, execution, and cleanup. One command.
+- **Developers think about agents, not infrastructure.** No containers to configure, no policies to write, no credentials to manage. Declare what the agent needs; the engine handles the rest.
+- **Every agent runs in a sandbox. No exceptions.** Network access is deny-by-default. Only declared endpoints are reachable. Credentials are injected at the network layer, never visible to agent code.
+- **Spin up, tear down, no residue.** Sandboxes auto-delete when agents finish. No orphaned compute, no leaked credentials, no cleanup scripts.
+- **Adding a tool or changing a model is a config change, not an infrastructure project.** Swap the model, add an MCP server, change the runtime. The sandbox adapts automatically.
+- **The same engine powers CLIs, dashboards, and pipelines.** Import as a Go library. Preview agent composition in a UI, fan out reviews across repos in CI, or reconcile agent CRDs in a controller. Same API everywhere.
 
 ## Quick Start
 
