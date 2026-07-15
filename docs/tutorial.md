@@ -290,7 +290,12 @@ This picks from the menu the platform engineer defined (runtimes, inference, MCP
 
 ## Step 11: Use the Go SDK
 
-Everything the CLI does is available programmatically:
+Everything the CLI does is available programmatically. The SDK is useful for:
+
+- **Dashboards**: Preview agent composition before launching (`engine.Resolve`)
+- **CI pipelines**: Fan out agents across repos (`engine.Start` per repo, collect output)
+- **Platform controllers**: Reconcile agent CRDs by constructing `Agent` structs and calling `engine.Run`
+- **Custom tooling**: Build your own CLI or API on top of the composition engine
 
 ```go
 package main
@@ -298,6 +303,7 @@ package main
 import (
     "context"
     "fmt"
+    "os"
     "github.com/zanetworker/agent-compose/pkg/compose"
 )
 
@@ -305,30 +311,52 @@ func main() {
     cfg, _ := compose.LoadConfig("~/.ac/config.yaml")
     engine := compose.New(
         compose.WithConfig(cfg),
-        compose.WithExecutor(compose.NewCLIExecutor("openshell")),
+        compose.WithExecutor(compose.NewCLIExecutor("openshell", os.Stdin, os.Stdout, os.Stderr)),
+        compose.WithProgress(os.Stderr),
         compose.WithSkillsDir("~/.ac/skills"),
     )
 
-    // Preview what would be created
+    // Preview what would be created (no sandbox)
     spec, _ := engine.Resolve(context.Background(), "security-reviewer")
     fmt.Printf("Image: %s\n", spec.Image)
     fmt.Printf("Providers: %v\n", spec.Providers)
-    fmt.Printf("Prompt: %s\n", spec.Prompt[:50])
+    fmt.Printf("MCP servers: %v\n", spec.MCPServers)
 
-    // Or run it
+    // Run foreground (blocks, streams output, auto-cleans up)
     run, _ := engine.Run(context.Background(), "security-reviewer", compose.RunOpts{
-        Workspace:       "./my-project",
-        SkipPermissions: true,
+        Workspace: "./my-project",
     })
-    fmt.Printf("Running in sandbox: %s\n", run.Sandbox)
+    fmt.Printf("Agent finished in sandbox: %s\n", run.Sandbox)
+
+    // Or start in background (returns immediately)
+    run, _ = engine.Start(context.Background(), "security-reviewer", compose.RunOpts{
+        Prompt: "Review the auth module",
+    })
+    fmt.Printf("Agent started: %s\n", run.Sandbox)
+
+    // Check output later
+    output, _ := engine.AgentOutput(context.Background(), run.Sandbox)
+    fmt.Println(output)
+
+    // Clean up
+    engine.Stop(context.Background(), run.Sandbox)
 }
 ```
 
-Run the included SDK tests to see more examples:
+Run the included examples (no gateway needed, uses DryRunExecutor):
 
 ```bash
+# All examples
 go test ./examples/ -v
+
+# Specific use case
+go test ./examples/ -v -run TestSDK_BatchReviewMultipleRepos
+go test ./examples/ -v -run TestSDK_ComposeWithMCP
+go test ./examples/ -v -run TestSDK_PreviewBeforeLaunch
+go test ./examples/ -v -run TestSDK_CustomRuntime
 ```
+
+See [examples/README.md](../examples/README.md) for the full list of use cases.
 
 ## Step 12: Run a Framework Agent (Custom ADK Example)
 

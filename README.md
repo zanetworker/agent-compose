@@ -147,6 +147,8 @@ defaults:       # Fallback inference, policy, sandbox opts
 
 ## Go SDK
 
+agent-compose is library-first. The `pkg/compose` package embeds into dashboards, CI pipelines, platform controllers, or any Go service that needs to compose and run agents.
+
 ```go
 import "github.com/zanetworker/agent-compose/pkg/compose"
 
@@ -156,16 +158,69 @@ engine := compose.New(
     compose.WithExecutor(compose.NewCLIExecutor("openshell", os.Stdin, os.Stdout, os.Stderr)),
     compose.WithProgress(os.Stderr),
 )
-
-run, _ := engine.Run(ctx, "security-reviewer", compose.RunOpts{
-    Workspace: "./my-repo",
-})
-
-// Or start in background
-run, _ := engine.Start(ctx, "security-reviewer", compose.RunOpts{
-    Prompt: "Review the auth module",
-})
 ```
+
+**Preview before launch** (dashboard pattern):
+
+```go
+// Resolve shows the full spec without creating anything
+spec, _ := engine.Resolve(ctx, "security-reviewer")
+// spec.Image, spec.Providers, spec.Env, spec.MCPServers, spec.Prompt
+// Display in UI, let user confirm, then:
+engine.Run(ctx, "security-reviewer", compose.RunOpts{Workspace: "./repo"})
+```
+
+**Fan out across repos** (CI pattern):
+
+```go
+repos := []string{"./api", "./web", "./auth"}
+for _, repo := range repos {
+    run, _ := engine.Start(ctx, "reviewer", compose.RunOpts{
+        Workspace: repo,
+        Prompt:    "Review for security issues",
+    })
+    fmt.Printf("Started %s in %s\n", repo, run.Sandbox)
+}
+// Later: collect results
+for _, run := range runs {
+    output, _ := engine.AgentOutput(ctx, run.Sandbox)
+    engine.Stop(ctx, run.Sandbox)
+}
+```
+
+**Custom runtime** (bring your own agent):
+
+```go
+cfg.Runtimes["my-agent"] = compose.RuntimeProfile{
+    Kind:       "framework",
+    Image:      "my-registry.com/my-agent:latest",
+    EnvMapping: map[string]string{"LLM_ENDPOINT": "${endpoint}", "LLM_MODEL": "${model}"},
+    Entrypoint: []string{"python3", "/app/agent.py"},
+}
+engine.Run(ctx, "my-agent", compose.RunOpts{Workspace: "./data"})
+```
+
+**Compose with MCP** (tools for agents):
+
+```go
+cfg.MCP["sentry"] = compose.MCPSpec{
+    Type: "http", URL: "https://mcp.sentry.dev/mcp",
+    Egress: []string{"mcp.sentry.dev:443"},
+}
+cfg.Agents["debugger"] = compose.Agent{
+    Runtime: "claude-code", MCP: []string{"github", "sentry"},
+    Prompt:  "Debug this issue using GitHub and Sentry.",
+}
+// MCP config is auto-generated in the agent's native format
+```
+
+**Run the examples** (no gateway needed, uses DryRunExecutor):
+
+```bash
+go test ./examples/ -v
+```
+
+See [examples/](examples/) for all runnable use cases.
 
 ## Documentation
 
