@@ -8,6 +8,7 @@ Set Width 110
 Set Height 60
 Set TypingSpeed 30ms
 Set WaitDuration 2s
+Set Prompt "\[\033[1;32m\]➜\[\033[0m\]  \[\033[1;36m\]\W\[\033[0m\] \[\033[1;36m\]git:(\[\033[31m\]$(git symbolic-ref --short HEAD 2>/dev/null || echo '-')\[\033[1;36m\])\[\033[0m\] \[\033[33m\]✗\[\033[0m\] "
 
 Narrate "agent-compose declares what an AI agent needs and runs it in a governed OpenShell sandbox. One command, zero infrastructure."
 Type "./ac --help"
