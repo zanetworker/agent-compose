@@ -1,0 +1,57 @@
+# agent-compose: From Config to Running Agent
+Set Shell "bash"
+Set Theme "iterm"
+Set Title "agent-compose"
+Set WindowBar false
+Set FontSize 16
+Set Width 110
+Set Height 60
+Set TypingSpeed 30ms
+Set WaitDuration 2s
+
+Narrate "agent-compose declares what an AI agent needs and runs it in a governed OpenShell sandbox. One command, zero infrastructure."
+Type "./ac --help"
+Enter
+Sleep 2s
+Wait
+
+Clear
+Narrate "ac doctor validates your entire setup: runtimes, inference providers, MCP servers, skills, and the OpenShell gateway."
+Type "./ac doctor 2>&1 | head -50"
+Enter
+Sleep 3s
+Wait
+
+Clear
+Narrate "Agents are declared in config.yaml. A runtime, inference provider, MCP servers, skills, and a prompt."
+Type "grep -A 10 '^agents:' ~/.ac/config.yaml"
+Enter
+Sleep 2s
+Wait
+
+Clear
+Narrate "ac get resolves all layers into a complete sandbox spec: image, env vars, egress endpoints, tools, and providers."
+Type "./ac get security-reviewer --json | jq '{name, image, providers, env: (.env | keys), egress, tools}'"
+Enter
+Sleep 3s
+Wait
+
+Clear
+Narrate "ac run creates the sandbox, applies egress policy, injects credentials, executes the agent, and cleans up. All streamed in real time."
+Type "./ac run quick-review --prompt 'What is 2+2? Reply with just the number.' --dry-run"
+Enter
+Sleep 4s
+Wait
+
+Clear
+Narrate "Every sandbox gets a deny-by-default network policy. Only declared endpoints are reachable. Credentials never touch agent code."
+Type "./ac run security-reviewer --dry-run 2>/dev/null | grep -E 'policy|endpoint|binary'"
+Enter
+Sleep 3s
+Wait
+
+Clear
+Narrate "Same engine powers CLIs, dashboards, and pipelines. Import as a Go library. One API everywhere."
+Type "echo 'Declare it. Resolve it. Run it. github.com/zanetworker/agent-compose'"
+Enter
+Sleep 2s
