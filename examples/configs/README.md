@@ -2,7 +2,7 @@
 
 Copy any of these into your `~/.ac/config.yaml` to get started.
 
-## Agents
+## Config Examples
 
 | Example | What it shows |
 |---------|---------------|
@@ -30,4 +30,97 @@ ac run security-reviewer --dry-run
 
 # Run for real
 ac run security-reviewer --workspace ./my-repo
+```
+
+## CLI Examples
+
+### Inline agents (no config entry needed)
+
+```bash
+# Simplest: pick a runtime, give a prompt
+ac run --runtime claude-code-vertex --prompt "What is 2+2?"
+
+# With workspace
+ac run --runtime claude-code-vertex \
+  --prompt "Review this code for bugs" \
+  --workspace ./my-repo
+
+# With MCP servers
+ac run --runtime claude-code-vertex \
+  --mcp github \
+  --prompt "What are the open PRs on this repo?" \
+  --skip-permissions
+
+# With skills
+ac run --runtime claude-code-vertex \
+  --mcp github \
+  --skills security-review \
+  --prompt "Review this PR for auth bypass" \
+  --workspace ./my-repo \
+  --skip-permissions
+
+# Override the model
+ac run --runtime claude-code-vertex \
+  --inference gpu-vllm \
+  --model qwen3-14b \
+  --prompt "Hello"
+```
+
+### Named agents (from config)
+
+```bash
+# Run (blocks, streams output, auto-cleans up)
+ac run security-reviewer --workspace ./my-repo
+
+# Override the model for this run
+ac run security-reviewer --model llama-3.3-70b
+
+# Override the prompt
+ac run security-reviewer --prompt "Focus only on SQL injection"
+
+# Interactive (drops into Claude session)
+ac run security-reviewer -i
+
+# Dry-run (shows openshell commands)
+ac run security-reviewer --workspace ./my-repo --dry-run
+```
+
+### Background agents
+
+```bash
+# Start in background (returns immediately)
+ac start security-reviewer --workspace ./my-repo --skip-permissions
+
+# Check on it
+ac list
+ac logs <sandbox-name>
+
+# Shell into the sandbox
+ac attach <sandbox-name>
+
+# Stop and clean up
+ac stop <sandbox-name>
+```
+
+### Framework agents (custom code)
+
+```bash
+# Upload your code + run it
+ac run my-adk-agent --workspace ./examples/adk-agent
+
+# Same agent, different model
+ac run my-adk-agent --workspace ./examples/adk-agent --model llama-3.3-70b
+```
+
+### Inspect and debug
+
+```bash
+# See the fully resolved spec (image, env, providers, egress, prompt, MCP)
+ac get security-reviewer --json
+
+# Validate config + check gateway + verify providers
+ac doctor
+
+# System logs (gateway/supervisor, not agent output)
+ac logs <sandbox-name> --system
 ```
