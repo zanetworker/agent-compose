@@ -1,0 +1,80 @@
+# Agent with MCP servers.
+# Claude Code gets a generated MCP config file so it discovers the servers automatically.
+#
+# Run: ac run debugger --workspace ./my-repo --skip-permissions
+# Preview: ac get debugger --json
+
+runtimes:
+  claude-code-vertex:
+    kind: harness
+    image: ghcr.io/nvidia/openshell-community/sandboxes/base:latest
+    env-mapping:
+      CLAUDE_CODE_USE_VERTEX: '1'
+      CLOUD_ML_REGION: ${model.region}
+      ANTHROPIC_VERTEX_PROJECT_ID: ${model.project}
+    entrypoint: [claude]
+    binaries: [/usr/local/bin/claude, /usr/bin/node]
+    providers: [vertex, gcp]
+    mcp-config:
+      format: claude
+      path: /sandbox/.ac-mcp.json
+
+inference:
+  vertex:
+    endpoint: https://us-east5-aiplatform.googleapis.com
+    provider: vertex
+    default-model: ''
+    models:
+      project: YOUR_GCP_PROJECT_ID       # <-- change this
+      region: us-east5
+
+# MCP servers: declare once, auto-wired to any agent that references them.
+# agent-compose generates the right config format per harness (Claude JSON, Goose YAML).
+mcp:
+  # Stdio MCP server: binary runs inside the sandbox
+  github:
+    type: stdio
+    command: npx
+    args: ["-y", "@github/mcp-server"]
+    provider: github
+    egress:
+      - api.github.com:443
+      - github.com:443
+      - registry.npmjs.org:443
+
+  # HTTP MCP server: remote endpoint, no binary needed in sandbox
+  sentry:
+    type: http
+    url: https://mcp.sentry.dev/mcp
+    egress:
+      - mcp.sentry.dev:443
+
+  # Another HTTP MCP server (for testing without auth)
+  everything:
+    type: http
+    url: http://host.containers.internal:3001/mcp
+    egress:
+      - host.containers.internal:3001
+
+agents:
+  # Agent with two MCP servers: GitHub + Sentry
+  debugger:
+    runtime: claude-code-vertex
+    inference: vertex
+    mcp: [github, sentry]
+    prompt: >
+      Debug issues using GitHub for code context and Sentry for error traces.
+      Always check Sentry first for the error, then find the relevant code in GitHub.
+
+  # Agent with a test MCP server (no auth needed)
+  mcp-test:
+    runtime: claude-code-vertex
+    inference: vertex
+    mcp: [everything]
+    prompt: Quick test agent with MCP tools.
+
+defaults:
+  sandbox:
+    scope: session
+    mode: all
+    ttl: 30m

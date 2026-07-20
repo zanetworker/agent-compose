@@ -1,0 +1,86 @@
+# Agent with reusable skills.
+# Skills are prompt bundles with reference files and tool/MCP dependencies.
+#
+# Create the skill first:
+#   mkdir -p ~/.ac/skills/security-review/references
+#   # See below for SKILL.md content
+#
+# Run: ac run security-reviewer --workspace ./my-repo
+
+runtimes:
+  claude-code-vertex:
+    kind: harness
+    image: ghcr.io/nvidia/openshell-community/sandboxes/base:latest
+    env-mapping:
+      CLAUDE_CODE_USE_VERTEX: '1'
+      CLOUD_ML_REGION: ${model.region}
+      ANTHROPIC_VERTEX_PROJECT_ID: ${model.project}
+    entrypoint: [claude]
+    binaries: [/usr/local/bin/claude, /usr/bin/node]
+    providers: [vertex, gcp]
+    mcp-config:
+      format: claude
+      path: /sandbox/.ac-mcp.json
+
+inference:
+  vertex:
+    endpoint: https://us-east5-aiplatform.googleapis.com
+    provider: vertex
+    default-model: ''
+    models:
+      project: YOUR_GCP_PROJECT_ID       # <-- change this
+      region: us-east5
+
+mcp:
+  github:
+    type: stdio
+    command: npx
+    args: ["-y", "@github/mcp-server"]
+    provider: github
+    egress:
+      - api.github.com:443
+      - github.com:443
+      - registry.npmjs.org:443
+
+agents:
+  # This agent uses a skill. The skill:
+  # 1. Adds its prompt to the agent's prompt
+  # 2. Declares requires.mcp: [github] -> github provider auto-attached
+  # 3. Has reference files that get uploaded to the sandbox
+  security-reviewer:
+    runtime: claude-code-vertex
+    inference: vertex
+    skills: [security-review]
+    prompt: You are a security-focused code reviewer. Be thorough but concise.
+
+defaults:
+  sandbox:
+    scope: session
+    mode: all
+    ttl: 30m
+
+# --- Skill file: ~/.ac/skills/security-review/SKILL.md ---
+#
+# ---
+# requires:
+#   mcp: [github]
+#   tools: [shell, file-read]
+# ---
+#
+# # Security Review
+#
+# When reviewing code, check for:
+# 1. SQL injection (parameterized queries vs string concat)
+# 2. XSS (output encoding, CSP headers)
+# 3. Auth bypass (missing checks, IDOR)
+# 4. Secrets in code (API keys, passwords, tokens)
+#
+# Reference the OWASP top 10 at /workspace/skills/security-review/owasp-top-10.md
+#
+# --- Reference file: ~/.ac/skills/security-review/references/owasp-top-10.md ---
+#
+# # OWASP Top 10 (2025)
+# 1. Broken Access Control
+# 2. Cryptographic Failures
+# 3. Injection
+# ...

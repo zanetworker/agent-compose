@@ -1,0 +1,84 @@
+# Full composition: runtime + inference + MCP + skills + prompt.
+# This is the "batteries included" example showing all five layers.
+#
+# Run: ac run full-reviewer --workspace ./my-repo --skip-permissions
+# Background: ac start full-reviewer --workspace ./my-repo --skip-permissions
+# Interactive: ac run full-reviewer -i
+
+runtimes:
+  claude-code-vertex:
+    kind: harness
+    image: ghcr.io/nvidia/openshell-community/sandboxes/base:latest
+    env-mapping:
+      CLAUDE_CODE_USE_VERTEX: '1'
+      CLOUD_ML_REGION: ${model.region}
+      ANTHROPIC_VERTEX_PROJECT_ID: ${model.project}
+    entrypoint: [claude]
+    binaries: [/usr/local/bin/claude, /usr/bin/node]
+    providers: [vertex, gcp]
+    tools: [shell, file-read, file-write, bundle-mcp]
+    mcp-config:
+      format: claude
+      path: /sandbox/.ac-mcp.json
+
+inference:
+  vertex:
+    endpoint: https://us-east5-aiplatform.googleapis.com
+    provider: vertex
+    default-model: ''
+    models:
+      project: YOUR_GCP_PROJECT_ID       # <-- change this
+      region: us-east5
+
+  # Alternative: local vLLM on a GPU cluster
+  gpu-vllm:
+    endpoint: https://vllm.my-cluster.com/v1
+    provider: ''
+    default-model: qwen3-14b
+    egress:
+      - vllm.my-cluster.com:443
+
+mcp:
+  github:
+    type: stdio
+    command: npx
+    args: ["-y", "@github/mcp-server"]
+    provider: github
+    egress:
+      - api.github.com:443
+      - github.com:443
+      - registry.npmjs.org:443
+
+  sentry:
+    type: http
+    url: https://mcp.sentry.dev/mcp
+    egress:
+      - mcp.sentry.dev:443
+
+agents:
+  # All five layers composed:
+  #   runtime:   claude-code-vertex (how to run)
+  #   inference: vertex (which model)
+  #   mcp:       github + sentry (which tools)
+  #   skills:    security-review (which instructions + reference files)
+  #   prompt:    agent-specific instructions
+  full-reviewer:
+    runtime: claude-code-vertex
+    inference: vertex
+    mcp: [github, sentry]
+    skills: [security-review]
+    prompt: >
+      You are a thorough code reviewer with access to GitHub and Sentry.
+      For each file changed, check for security issues using the OWASP checklist.
+      Cross-reference with Sentry for any related production errors.
+      Be concise but cite specific lines.
+
+  # Same agent, different model (override at run time)
+  # ac run full-reviewer --inference gpu-vllm --model qwen3-14b
+
+defaults:
+  inference: vertex
+  sandbox:
+    scope: session
+    mode: all
+    ttl: 30m

@@ -1,0 +1,99 @@
+# Multiple agents sharing the same infrastructure.
+# Platform engineer defines runtimes, inference, and MCP once.
+# Each agent picks from the menu.
+#
+# ac run reviewer --workspace ./api-server
+# ac run writer --prompt "Add pagination to the list endpoint"
+# ac start tester --workspace ./api-server
+# ac run analyst --workspace ./data-pipeline
+
+runtimes:
+  claude-code-vertex:
+    kind: harness
+    image: ghcr.io/nvidia/openshell-community/sandboxes/base:latest
+    env-mapping:
+      CLAUDE_CODE_USE_VERTEX: '1'
+      CLOUD_ML_REGION: ${model.region}
+      ANTHROPIC_VERTEX_PROJECT_ID: ${model.project}
+    entrypoint: [claude]
+    binaries: [/usr/local/bin/claude, /usr/bin/node]
+    providers: [vertex, gcp]
+    mcp-config:
+      format: claude
+      path: /sandbox/.ac-mcp.json
+
+  python-agent:
+    kind: framework
+    image: ghcr.io/nvidia/openshell-community/sandboxes/base:latest
+    env-mapping:
+      OPENAI_BASE_URL: ${endpoint}
+      OPENAI_MODEL: ${model}
+    entrypoint: [python3, /sandbox/agent/main.py]
+    binaries: [/sandbox/.uv/python/**/python3*]
+
+inference:
+  vertex:
+    endpoint: https://us-east5-aiplatform.googleapis.com
+    provider: vertex
+    default-model: ''
+    models:
+      project: YOUR_GCP_PROJECT_ID
+      region: us-east5
+
+  gpu-cluster:
+    endpoint: https://vllm.my-cluster.com/v1
+    provider: ''
+    default-model: qwen3-14b
+    egress: [vllm.my-cluster.com:443]
+
+mcp:
+  github:
+    type: stdio
+    command: npx
+    args: ["-y", "@github/mcp-server"]
+    provider: github
+    egress: [api.github.com:443, github.com:443, registry.npmjs.org:443]
+
+  sentry:
+    type: http
+    url: https://mcp.sentry.dev/mcp
+    egress: [mcp.sentry.dev:443]
+
+agents:
+  # Code reviewer: Claude + GitHub + security skills
+  reviewer:
+    runtime: claude-code-vertex
+    inference: vertex
+    mcp: [github]
+    skills: [security-review]
+    prompt: Review code for security issues. Be concise, cite line numbers.
+
+  # Feature writer: Claude + GitHub (reads PRs, writes code)
+  writer:
+    runtime: claude-code-vertex
+    inference: vertex
+    mcp: [github]
+    prompt: >
+      You are a senior engineer. Implement features cleanly with tests.
+      Follow existing patterns. Keep PRs small.
+
+  # Test runner: Claude with no MCP (just runs tests)
+  tester:
+    runtime: claude-code-vertex
+    inference: vertex
+    prompt: >
+      Run the test suite. If tests fail, diagnose the root cause.
+      Suggest the minimal fix. Do not refactor unrelated code.
+
+  # Data analyst: Python agent on GPU cluster (not Claude)
+  analyst:
+    runtime: python-agent
+    inference: gpu-cluster
+    prompt: Analyze the data pipeline for performance bottlenecks.
+
+defaults:
+  inference: vertex
+  sandbox:
+    scope: session
+    mode: all
+    ttl: 30m

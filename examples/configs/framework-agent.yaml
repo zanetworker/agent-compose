@@ -1,0 +1,65 @@
+# Framework agent: bring your own code.
+# Unlike harness agents (Claude, Codex), framework agents upload your code
+# into the sandbox and run it. The sandbox handles inference credentials.
+#
+# Run: ac run my-agent --workspace ./examples/adk-agent
+# Override model: ac run my-agent --workspace ./examples/adk-agent --model llama-3.3-70b
+
+runtimes:
+  # Custom Python agent runtime
+  python-agent:
+    kind: framework
+    image: ghcr.io/nvidia/openshell-community/sandboxes/base:latest
+    env-mapping:
+      OPENAI_BASE_URL: ${endpoint}
+      OPENAI_MODEL: ${model}
+    entrypoint: [python3, /sandbox/adk-agent/agent.py]
+    binaries:
+      - /sandbox/.uv/python/**/python3*     # glob: survives Python version bumps
+      - /usr/local/bin/python3
+
+  # Custom Node.js agent runtime
+  node-agent:
+    kind: framework
+    image: ghcr.io/nvidia/openshell-community/sandboxes/base:latest
+    env-mapping:
+      LLM_API_URL: ${endpoint}
+      LLM_MODEL: ${model}
+    entrypoint: [node, /sandbox/my-agent/index.js]
+    binaries:
+      - /usr/bin/node
+      - /usr/local/bin/node
+
+inference:
+  gpu-gemma:
+    endpoint: https://gemma-3-12b-it.my-cluster.com/v1
+    provider: ''
+    default-model: gemma-3-12b-it
+    egress:
+      - gemma-3-12b-it.my-cluster.com:443
+
+  local-ollama:
+    endpoint: http://host.containers.internal:11434/v1
+    provider: ''
+    default-model: llama3.2
+    egress:
+      - host.containers.internal:11434
+
+agents:
+  # Python framework agent on a GPU cluster
+  my-agent:
+    runtime: python-agent
+    inference: gpu-gemma
+    prompt: Analyze the codebase and suggest improvements.
+
+  # Same agent, local Ollama
+  my-agent-local:
+    runtime: python-agent
+    inference: local-ollama
+    prompt: Analyze the codebase and suggest improvements.
+
+defaults:
+  sandbox:
+    scope: session
+    mode: all
+    ttl: 30m

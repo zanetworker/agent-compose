@@ -1,0 +1,41 @@
+# Minimal agent: just a runtime and a prompt.
+# Uses Claude Code via Vertex AI. No MCP, no skills.
+#
+# Run: ac run hello --prompt "What is 2+2?"
+# Interactive: ac run hello -i
+
+runtimes:
+  claude-code-vertex:
+    kind: harness
+    image: ghcr.io/nvidia/openshell-community/sandboxes/base:latest
+    env-mapping:
+      CLAUDE_CODE_USE_VERTEX: '1'
+      CLOUD_ML_REGION: ${model.region}
+      ANTHROPIC_VERTEX_PROJECT_ID: ${model.project}
+    entrypoint: [claude]
+    binaries: [/usr/local/bin/claude, /usr/bin/node]
+    providers: [vertex, gcp]
+    mcp-config:
+      format: claude
+      path: /sandbox/.ac-mcp.json
+
+inference:
+  vertex:
+    endpoint: https://us-east5-aiplatform.googleapis.com
+    provider: vertex
+    default-model: ''
+    models:
+      project: YOUR_GCP_PROJECT_ID       # <-- change this
+      region: us-east5
+
+agents:
+  hello:
+    runtime: claude-code-vertex
+    inference: vertex
+    prompt: You are a helpful assistant.
+
+defaults:
+  sandbox:
+    scope: session
+    mode: all
+    ttl: 30m
