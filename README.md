@@ -140,6 +140,60 @@ ac run security-reviewer --workspace ./repo --dry-run
 # Prints exact openshell commands without executing
 ```
 
+## Examples
+
+### Inline agents (no config needed)
+
+```bash
+# Just a runtime and a prompt
+ac run --runtime claude-code-vertex --prompt "What is 2+2?"
+
+# With MCP servers
+ac run --runtime claude-code-vertex \
+  --mcp github \
+  --prompt "List open PRs on this repo" \
+  --skip-permissions
+
+# With skills + MCP + workspace
+ac run --runtime claude-code-vertex \
+  --mcp github \
+  --skills security-review \
+  --prompt "Review this PR for auth bypass" \
+  --workspace ./my-repo \
+  --skip-permissions
+```
+
+### Named agents (from config)
+
+```bash
+# Run (blocks, streams output, auto-cleans up)
+ac run security-reviewer --workspace ./my-repo
+
+# Override model for this run
+ac run security-reviewer --model llama-3.3-70b
+
+# Interactive Claude session
+ac run security-reviewer -i
+```
+
+### Background lifecycle
+
+```bash
+ac start security-reviewer --workspace ./my-repo --skip-permissions
+ac logs <sandbox-name>      # agent output
+ac attach <sandbox-name>    # shell in
+ac stop <sandbox-name>      # clean up
+```
+
+### Framework agents (bring your own code)
+
+```bash
+# Upload Python agent + run it on a GPU model
+ac run my-adk-agent --workspace ./examples/adk-agent
+```
+
+See [examples/configs/](examples/configs/) for complete config files covering: [minimal](examples/configs/minimal-agent.yaml), [MCP](examples/configs/agent-with-mcp.yaml), [skills](examples/configs/agent-with-skills.yaml), [full composition](examples/configs/agent-with-everything.yaml), [framework agents](examples/configs/framework-agent.yaml), and [multi-agent teams](examples/configs/multi-agent.yaml).
+
 ## Configuration
 
 See [docs/composition.md](docs/composition.md) for the full config reference. Key sections:
